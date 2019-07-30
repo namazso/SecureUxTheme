@@ -29,7 +29,7 @@ XPStyle on
 RequestExecutionLevel admin
 BrandingText "by namazso"
 
-LicenseData "license.rtf"
+LicenseData "LICENSE"
 SubCaption 0 ": License"
 
 Page license
