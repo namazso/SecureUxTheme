@@ -24,6 +24,15 @@ Styles must still have a format-wise valid signature appended, it is just not ve
 
 [Latest release](https://github.com/namazso/SecureUxTheme/releases/latest/download/SecureUxTheme_setup.exe)
 
+## Screenshot
+
+This is only a tool for enabling custom themes, no actual visual changes will be made.
+Regardless, here's a cool theme for illustration:
+
+![Screenshot](https://raw.githubusercontent.com/namazso/SecureUxTheme/master/screenshot.png)
+
+[Theme used](https://7themes.su/load/windows_10_themes/temnye/10_pro_edition/34-1-0-1321)
+
 ## Recovery
 
 Despite best effort things may always break so bad they prevent booting up windows.
