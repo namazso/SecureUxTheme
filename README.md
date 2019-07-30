@@ -24,6 +24,17 @@ Styles must still have a format-wise valid signature appended, it is just not ve
 
 [Latest release](https://github.com/namazso/SecureUxTheme/releases/latest/download/SecureUxTheme_setup.exe)
 
+## Recovery
+
+Despite best effort things may always break so bad they prevent booting up windows.
+This section describes how to disable the software on a non-booting install:
+
+1. See [this guide](https://www.wintips.org/how-to-edit-and-modify-registry-offline/) on editing registry offline
+2. Navigate to `SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\`
+3. Delete the following keys: `systemsettings.exe`, `winlogon.exe`, `dwm.exe`
+4. Done, the software should be disabled now and you can reboot.
+5. After reboot you can completely remove the software by deleting `%windir%\system32\SecureUxTheme.dll`
+
 ## Building
 
 ### Requirements
