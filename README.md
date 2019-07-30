@@ -11,10 +11,18 @@ SecureUxTheme is a software that removes signature verification of styles from W
 * Secure boot compatible
 * Probably quite future-proof
 
+## Limitations
+
+Styles must still have a format-wise valid signature appended, it is just not verified. A tool for fixing styles without or with invalid one is included in the installer.
+
 ## Operating System Support
 
 * Windows 10 1903 (tested)
 * Built with support for Windows 7 and later (not tested)
+
+## Download
+
+[Latest release](https://github.com/namazso/SecureUxTheme/releases/latest/download/SecureUxTheme_setup.exe)
 
 ## Building
 
