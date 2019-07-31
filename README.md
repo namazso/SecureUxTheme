@@ -35,6 +35,7 @@ Styles must still have a format-wise valid signature appended, it is just not ve
 ## Screenshot
 
 Installer:
+
 ![Installer Screenshot](https://raw.githubusercontent.com/namazso/SecureUxTheme/master/screenshot_setup.png)
 
 This is only a tool for enabling custom themes, no actual visual changes will be made.
