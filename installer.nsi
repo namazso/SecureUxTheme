@@ -36,31 +36,54 @@ Page license
 Page custom install_page
 !pragma warning disable 8000 ; "Page instfiles not used, no sections will be executed!"
 
-Var BUTTON
-Var BUTTON2
-Var BUTTON3
 Var LABEL
+Var CHECKBOX_EXPLORER
+Var CHECKBOX_SETTINGS
 
 Function install_page
 	nsDialogs::Create 1018
 	Pop $0
-
-	${NSD_CreateButton} 0 0 48% 15u "Install"
-	Pop $BUTTON
+	
+	${NSD_CreateCheckbox} 2% 8u 46% 8u "Also hook explorer (unsafe)"
+	Pop $CHECKBOX_EXPLORER
+	
+	${NSD_CreateCheckbox} 2% 18u 46% 8u "Also hook SystemSettings"
+	Pop $CHECKBOX_SETTINGS
+	
+	${NSD_CreateButton} 2% 30u 22% 15u "Install"
+	Pop $1
 	GetFunctionAddress $0 OnInstall
-	nsDialogs::OnClick $BUTTON $0
+	nsDialogs::OnClick $1 $0
 	
-	${NSD_CreateButton} 52% 0 48% 15u "Uninstall"
-	Pop $BUTTON2
+	${NSD_CreateButton} 26% 30u 22% 15u "Uninstall"
+	Pop $1
 	GetFunctionAddress $0 OnUninstall
-	nsDialogs::OnClick $BUTTON2 $0
+	nsDialogs::OnClick $1 $0
 	
-	${NSD_CreateButton} 0 20u 100% 15u "Fix signature of style"
-	Pop $BUTTON3
+	${NSD_CreateGroupBox} 0 0 50% 48u ""
+	Pop $1
+	
+	${NSD_CreateButton} 52% 4u 48% 20u "Fix signature of style"
+	Pop $1
 	GetFunctionAddress $0 OnFixSignature
-	nsDialogs::OnClick $BUTTON3 $0
-
-	${NSD_CreateLabel} 0 40u 75% 40u ""
+	nsDialogs::OnClick $1 $0
+	
+	${NSD_CreateButton} 52% 28u 48% 20u "Hooked Personalization"
+	Pop $1
+	GetFunctionAddress $0 OnHookedPersonalization
+	nsDialogs::OnClick $1 $0
+	
+	${NSD_CreateLabel} 0 52u 100% 100u "\
+	- Hooking SystemSettings enables custom themes in Themes (Settings app)$\n\
+	${U+00A0}${U+00A0}- However that is only available in Windows 10 1703+$\n\
+	- Hooking explorer enables custom themes in Personalization (Control Panel)$\n\
+	${U+00A0}${U+00A0}- It may or may not also break certain 32bit programs using explorer$\n\
+	${U+00A0}${U+00A0}- Instead you can start a single hooked instance with $\"Hooked Personalization$\"$\n\
+	- Styles still need to be signed, it just doesn't need to be valid$\n\
+	${U+00A0}${U+00A0}- You can add an invalid signature to styles with $\"Fix signature of style$\"$\n"
+	Pop $1
+	
+	${NSD_CreateLabel} 0 122u 100% 10u ""
 	Pop $LABEL
 
 	nsDialogs::Show
@@ -84,13 +107,64 @@ Function OnFixSignature
 	Pop $0
 	${If} $0 != ""
 		File /oname=$TEMP\ThemeInvalidSigner.exe bin\Release\Win32\ThemeInvalidSigner.exe
-		ExecWait '"$TEMP\ThemeInvalidSigner.exe" "$0"' $0
+		;ExecWait '"$TEMP\ThemeInvalidSigner.exe" "$0"' $0
+		nsExec::ExecToStack '"$TEMP\ThemeInvalidSigner.exe" "$0"'
+		Pop $0 # return value
+		Pop $1 # stdout
 		
-		${If} $0 != 0
-			${NSD_SetText} $LABEL "Program returned with error $0."
+		${If} $1 != ""
+			${NSD_SetText} $LABEL $1
 		${Else}
-			${NSD_SetText} $LABEL "Signature successfully fixed."
+			${NSD_SetText} $LABEL "Program returned with error $0."
 		${EndIf}
+		
+		;${If} $0 != 0
+		;	${NSD_SetText} $LABEL "Program returned with error $0."
+		;${Else}
+		;	${NSD_SetText} $LABEL "Signature successfully fixed."
+		;${EndIf}
+	${EndIf}
+FunctionEnd
+
+Function OpenPersionalization
+	ExecShellWait "" "$WINDIR\explorer.exe" "/separate,shell:::{ED834ED6-4B5A-4bfe-8F11-A626DCB6A921}"
+FunctionEnd
+
+Function OnHookedPersonalization
+	${If} ${IsNativeAMD64}
+		${DisableX64FSRedirection}
+		SetRegView 64
+	${EndIf}
+	
+	ReadRegDWORD $0 HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\explorer.exe" "GlobalFlag"
+	
+	${If} $0 != 0x100
+		Push "explorer.exe"
+		Call IFEOAddEntry
+		Call OpenPersionalization
+		Push "explorer.exe"
+		Call IFEODeleteEntry
+	${Else}
+		Call OpenPersionalization
+	${EndIf}
+FunctionEnd
+
+Function InstallRegistryKeys
+	Push "winlogon.exe"
+	Call IFEOAddEntry
+	Push "dwm.exe"
+	Call IFEOAddEntry
+	
+	${NSD_GetState} $CHECKBOX_EXPLORER $0
+	${If} $0 == ${BST_CHECKED}
+		Push "explorer.exe"
+		Call IFEOAddEntry
+	${EndIf}
+	
+	${NSD_GetState} $CHECKBOX_SETTINGS $0
+	${If} $0 == ${BST_CHECKED}
+		Push "explorer.exe"
+		Call IFEOAddEntry
 	${EndIf}
 FunctionEnd
 
@@ -104,12 +178,7 @@ ${ElseIf} ${IsNativeIA32}
 	File /oname=$SYSDIR\SecureUxTheme.dll bin\Release\Win32\SecureUxTheme.dll
 	
 RegistryInstall:
-	Push "systemsettings.exe"
-	Push "winlogon.exe"
-	Push "dwm.exe"
-	Call IFEOAddEntry
-	Call IFEOAddEntry
-	Call IFEOAddEntry
+	Call InstallRegistryKeys
 	
 	${NSD_SetText} $LABEL "Successfully installed, please reboot!"
 ${Else}
@@ -127,10 +196,12 @@ ${ElseIf} ${IsNativeIA32}
 Uninstall:
 	Delete /REBOOTOK $SYSDIR\SecureUxTheme.dll
 	Push "systemsettings.exe"
+	Call IFEODeleteEntry
+	Push "explorer.exe"
+	Call IFEODeleteEntry
 	Push "winlogon.exe"
+	Call IFEODeleteEntry
 	Push "dwm.exe"
-	Call IFEODeleteEntry
-	Call IFEODeleteEntry
 	Call IFEODeleteEntry
 	
 	${NSD_SetText} $LABEL "Successfully uninstalled, please reboot!"
