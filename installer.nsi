@@ -99,7 +99,8 @@ FunctionEnd
 Function IFEODeleteEntry
 	Pop $0
 	
-	DeleteRegKey HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\$0"
+	DeleteRegValue HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\$0" "GlobalFlag"
+	DeleteRegValue HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\$0" "VerifierDlls"
 FunctionEnd
 
 Function OnFixSignature
@@ -150,6 +151,11 @@ Function OnHookedPersonalization
 FunctionEnd
 
 Function InstallRegistryKeys
+	; ensure hook doesn't get installed if we failed installing dll
+	IfFileExists $SYSDIR\SecureUxTheme.dll found
+		Return
+	found:
+	
 	Push "winlogon.exe"
 	Call IFEOAddEntry
 	Push "dwm.exe"
@@ -163,7 +169,7 @@ Function InstallRegistryKeys
 	
 	${NSD_GetState} $CHECKBOX_SETTINGS $0
 	${If} $0 == ${BST_CHECKED}
-		Push "explorer.exe"
+		Push "SystemSettings.exe"
 		Call IFEOAddEntry
 	${EndIf}
 FunctionEnd
@@ -180,7 +186,12 @@ ${ElseIf} ${IsNativeIA32}
 RegistryInstall:
 	Call InstallRegistryKeys
 	
-	${NSD_SetText} $LABEL "Successfully installed, please reboot!"
+	IfFileExists $SYSDIR\SecureUxTheme.dll found
+		${NSD_SetText} $LABEL "Cannot install file!"
+		Goto end
+	found:
+		${NSD_SetText} $LABEL "Successfully installed, please reboot!"
+	end:
 ${Else}
 	${NSD_SetText} $LABEL "Unsupported CPU architecture!"
 ${EndIf}
