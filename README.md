@@ -45,6 +45,10 @@ Regardless, here's a cool theme for illustration:
 
 [Theme used](https://7themes.su/load/windows_10_themes/temnye/10_pro_edition/34-1-0-1321)
 
+## Where to get themes
+
+I recommend [7themes.su](https://7themes.su/) for finding themes. Alternatives are DeviantArt, and if you don't mind paying cleosdesktop, although I haven't tried that. Also, you can just search for themes with your favorite search engine.
+
 ## Recovery
 
 Despite best effort things may always break so bad they prevent booting up windows.
