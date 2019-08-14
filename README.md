@@ -36,12 +36,12 @@ Styles must still have a format-wise valid signature appended, it is just not ve
 
 Installer:
 
-![Installer Screenshot](https://raw.githubusercontent.com/namazso/SecureUxTheme/master/screenshot_setup.png)
+![Installer Screenshot](https://raw.githubusercontent.com/namazso/SecureUxTheme/master/resources/screenshot_setup.png)
 
 This is only a tool for enabling custom themes, no actual visual changes will be made.
 Regardless, here's a cool theme for illustration:
 
-![Screenshot](https://raw.githubusercontent.com/namazso/SecureUxTheme/master/screenshot.png)
+![Screenshot](https://raw.githubusercontent.com/namazso/SecureUxTheme/master/resources/screenshot.png)
 
 [Theme used](https://7themes.su/load/windows_10_themes/temnye/10_pro_edition/34-1-0-1321)
 
