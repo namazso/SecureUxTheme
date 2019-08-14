@@ -197,6 +197,20 @@ ${Else}
 ${EndIf}
 FunctionEnd
 
+Function RandomString
+	StrCpy $2 ""
+	start:
+		System::Call 'advapi32::SystemFunction036(*i0r0,i1)'
+		IntCmpU $0 127 "" ""  start ; Limit to ASCII, IsCharAlphaNumeric is locale specific
+		System::Call 'user32::IsCharAlphaNumericA(ir0)i.r1'
+		StrCmp $1 0 start
+		IntFmt $0 "%c" $0
+		StrCpy $2 "$2$0"
+		StrLen $0 $2
+		IntCmpU $0 10 "" start
+	Push $2
+FunctionEnd
+
 Function OnUninstall
 ${If} ${IsNativeAMD64}
 	${DisableX64FSRedirection}
@@ -205,7 +219,10 @@ ${If} ${IsNativeAMD64}
 ${ElseIf} ${IsNativeIA32}
 	
 Uninstall:
-	Delete /REBOOTOK $SYSDIR\SecureUxTheme.dll
+	Call RandomString
+	Pop $0
+	Rename $SYSDIR\SecureUxTheme.dll $SYSDIR\$0.deleted
+	Delete /REBOOTOK $SYSDIR\$0.deleted
 	Push "systemsettings.exe"
 	Call IFEODeleteEntry
 	Push "explorer.exe"
