@@ -46,6 +46,13 @@ Regardless, here's a cool theme for illustration:
 
 I recommend [7themes.su](https://7themes.su/) for finding themes. Alternatives are [DeviantArt](https://www.deviantart.com/customization/skins/windows/win10/newest/?offset=0), and if you don't mind paying [cleodesktop](https://www.cleodesktop.com/), although I haven't tried that. Also, you can just search for themes with your favorite search engine.
 
+## Donations
+
+This software is provided completely free of charge to you, however I spent time and effort developing it. If you like this software, please consider making a donation:
+
+* Bitcoin: 1N6UzYgzn3sLV33hB2iS3FvYLzD1G4CuS2
+* Monero: 83sJ6GoeKf1U47vD9Tk6y2MEKJKxPJkECG3Ms7yzVGeiBYg2uYhBAUAZKNDH8VnAPGhwhZeqBnofDPgw9PiVtTgk95k53Rd
+
 ## Recovery
 
 Despite best effort things may always break so bad they prevent booting up windows.
