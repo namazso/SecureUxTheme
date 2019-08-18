@@ -44,7 +44,7 @@ Regardless, here's a cool theme for illustration:
 
 ## Where to get themes
 
-I recommend [7themes.su](https://7themes.su/) for finding themes. Alternatives are DeviantArt, and if you don't mind paying cleosdesktop, although I haven't tried that. Also, you can just search for themes with your favorite search engine.
+I recommend [7themes.su](https://7themes.su/) for finding themes. Alternatives are [DeviantArt](https://www.deviantart.com/customization/skins/windows/win10/newest/?offset=0), and if you don't mind paying [cleodesktop](https://www.cleodesktop.com/), although I haven't tried that. Also, you can just search for themes with your favorite search engine.
 
 ## Recovery
 
