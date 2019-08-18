@@ -15,18 +15,15 @@ SecureUxTheme is a software that removes signature verification of styles from W
 
 Styles must still have a format-wise valid signature appended, it is just not verified. A tool for fixing styles without or with invalid one is included in the installer.
 
-## Operating System Support
+## Operating System Support\*
 
 * Windows 8.1
-* Windows 10 1507
-* Windows 10 1511 (untested)
-* Windows 10 1607
-* Windows 10 1703 (untested)
-* Windows 10 1703 (untested)
-* Windows 10 1709 (untested)
-* Windows 10 1803 (untested)
-* Windows 10 1809
-* Windows 10 1903
+* Windows 10 (tested: 1507, 1607, 1809, 1903, 20H1 Insider 18963)
+* Future versions\*\*
+
+\* Windows 7 will never be supported due to the way themes are implemented.
+
+\*\* The current code doesn't depend on any code, binary or memory layout of uxtheme and related dlls, therefore should work unless major changes are made to how themes in general work.
 
 ## Download
 
