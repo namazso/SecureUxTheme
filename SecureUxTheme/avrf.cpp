@@ -114,9 +114,11 @@ typedef PVOID(NTAPI *PDELAYLOAD_FAILURE_SYSTEM_ROUTINE)(
   (std::add_pointer_t<std::remove_const_t<std::remove_pointer_t<std::decay_t<decltype(s)>>>>)(s) \
 }
 
-#define NtCurrentProcess() (HANDLE(LONG64(-1)))
+#define NtCurrentProcess() (HANDLE(LONG_PTR(-1)))
 
 EXTERN_C_END
+
+// I don't believe in comments
 
 #include <cstring>
 #include <type_traits>
@@ -225,6 +227,14 @@ BOOL WINAPI DllMain(
     LdrDisableThreadCalloutsForDll(dll_handle);
     break;
   case DLL_PROCESS_VERIFIER:
+
+    // sort hooks so we can binary search in them
+    std::sort(std::begin(s_hooks), std::end(s_hooks),
+      [](const hook_entry& a, const hook_entry& b)
+    {
+      return a.new_address < b.new_address;
+    });
+
     DebugPrint("Setting verifier provider\n");
     *provider = &s_provider_descriptor;
     break;
