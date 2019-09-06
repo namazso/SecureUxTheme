@@ -175,24 +175,16 @@ static UNICODE_STRING const s_target_images[] =
   RTL_CONSTANT_STRING(L"uxtheme"),
 };
 
-template<typename Iter, typename T, typename Pred = std::less<T>>
-Iter binary_find(Iter begin, Iter end, const T& val, Pred pred = {})
-{
-  const auto it = std::lower_bound(begin, end, val, pred);
-
-  return it != end && !pred(val, *it) ? it : end;
-}
-
 void* get_original_from_hook_address(void* hook_address)
 {
   const hook_entry temp_entry{ {}, nullptr, hook_address };
-  const auto it = binary_find(std::begin(s_hooks), std::end(s_hooks), temp_entry,
-    [](const hook_entry& a, const hook_entry& b)
+
+  const auto it = std::find_if(std::begin(s_hooks), std::end(s_hooks), [hook_address](const hook_entry& e)
   {
-    return a.new_address < b.new_address;
+    return e.new_address == hook_address;
   });
 
-  return it->old_address;
+  return it == std::end(s_hooks) ? nullptr : it->old_address;
 }
 
 template <typename T>
@@ -227,14 +219,6 @@ BOOL WINAPI DllMain(
     LdrDisableThreadCalloutsForDll(dll_handle);
     break;
   case DLL_PROCESS_VERIFIER:
-
-    // sort hooks so we can binary search in them
-    std::sort(std::begin(s_hooks), std::end(s_hooks),
-      [](const hook_entry& a, const hook_entry& b)
-    {
-      return a.new_address < b.new_address;
-    });
-
     DebugPrint("Setting verifier provider\n");
     *provider = &s_provider_descriptor;
     break;
