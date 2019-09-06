@@ -39,6 +39,7 @@ Page custom install_page
 Var LABEL
 Var CHECKBOX_EXPLORER
 Var CHECKBOX_SETTINGS
+Var CHECKBOX_LOGONUI
 
 Function install_page
 	nsDialogs::Create 1018
@@ -50,30 +51,34 @@ Function install_page
 	${NSD_CreateCheckbox} 2% 18u 46% 8u "Also hook SystemSettings"
 	Pop $CHECKBOX_SETTINGS
 	
-	${NSD_CreateButton} 2% 30u 22% 15u "Install"
+	${NSD_CreateCheckbox} 2% 28u 46% 8u "LogonUI fix"
+	Pop $CHECKBOX_LOGONUI
+	${NSD_Check} $CHECKBOX_LOGONUI
+	
+	${NSD_CreateButton} 2% 40u 22% 15u "Install"
 	Pop $1
 	GetFunctionAddress $0 OnInstall
 	nsDialogs::OnClick $1 $0
 	
-	${NSD_CreateButton} 26% 30u 22% 15u "Uninstall"
+	${NSD_CreateButton} 26% 40u 22% 15u "Uninstall"
 	Pop $1
 	GetFunctionAddress $0 OnUninstall
 	nsDialogs::OnClick $1 $0
 	
-	${NSD_CreateGroupBox} 0 0 50% 48u ""
+	${NSD_CreateGroupBox} 0 0 50% 58u ""
 	Pop $1
 	
-	${NSD_CreateButton} 52% 4u 48% 20u "Fix signature of style"
+	${NSD_CreateButton} 52% 4u 48% 25u "Fix signature of style"
 	Pop $1
 	GetFunctionAddress $0 OnFixSignature
 	nsDialogs::OnClick $1 $0
 	
-	${NSD_CreateButton} 52% 28u 48% 20u "Hooked Personalization"
+	${NSD_CreateButton} 52% 33u 48% 25u "Hooked Personalization"
 	Pop $1
 	GetFunctionAddress $0 OnHookedPersonalization
 	nsDialogs::OnClick $1 $0
 	
-	${NSD_CreateLabel} 0 52u 100% 100u "\
+	${NSD_CreateLabel} 0 62u 100% 100u "\
 	- Hooking SystemSettings enables custom themes in Themes (Settings app)$\n\
 	${U+00A0}${U+00A0}- However that is only available in Windows 10 1703+$\n\
 	- Hooking explorer enables custom themes in Personalization (Control Panel)$\n\
@@ -167,6 +172,12 @@ Function InstallRegistryKeys
 		Call IFEOAddEntry
 	${EndIf}
 	
+	${NSD_GetState} $CHECKBOX_LOGONUI $0
+	${If} $0 == ${BST_CHECKED}
+		Push "LogonUI.exe"
+		Call IFEOAddEntry
+	${EndIf}
+	
 	${NSD_GetState} $CHECKBOX_SETTINGS $0
 	${If} $0 == ${BST_CHECKED}
 		Push "SystemSettings.exe"
@@ -226,6 +237,8 @@ Uninstall:
 	Push "systemsettings.exe"
 	Call IFEODeleteEntry
 	Push "explorer.exe"
+	Call IFEODeleteEntry
+	Push "LogonUI.exe"
 	Call IFEODeleteEntry
 	Push "winlogon.exe"
 	Call IFEODeleteEntry

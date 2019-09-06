@@ -10,6 +10,7 @@ SecureUxTheme is a software that removes signature verification of styles from W
 * No driver needed
 * Secure boot compatible
 * Probably quite future-proof
+* Fixes LogonUI resetting some colors on locking
 
 ## Limitations
 
@@ -28,6 +29,14 @@ Styles must still have a format-wise valid signature appended, it is just not ve
 ## Download
 
 [Latest release](https://github.com/namazso/SecureUxTheme/releases/latest/download/SecureUxTheme_setup.exe)
+
+## LogonUI fix
+
+Locking Windows makes LogonUI reset certain colors and ignore the currently set style. This tool can fix this problem. A picture comparison showing the Task Manager opened after locking Windows without and with the fix can be seen here:
+
+![LogonUI problem](resources/logonui_comparison.png)
+
+Do note this feature might mess up some high contrast theme features when locking.
 
 ## Screenshot
 

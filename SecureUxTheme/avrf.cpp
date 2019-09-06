@@ -152,6 +152,14 @@ ResolveDelayLoadedAPI_Hook(
   _Reserved_ ULONG                             Flags
 );
 
+BOOL
+WINAPI
+SetSysColors_Hook(
+  _In_                  int             cElements,
+  _In_reads_(cElements) CONST INT       *lpaElements,
+  _In_reads_(cElements) CONST COLORREF  *lpaRgbValues
+);
+
 struct hook_entry
 {
   ANSI_STRING     function_name;
@@ -159,20 +167,29 @@ struct hook_entry
   PVOID           new_address;
 };
 
+struct hook_target_image
+{
+  UNICODE_STRING  name;
+  ULONG           hook_bitmap;
+  PVOID           base = nullptr;
+};
+
 #define DEFINE_HOOK(name) {RTL_CONSTANT_STRING(#name), nullptr, (PVOID)&name ## _Hook}
 
 static hook_entry s_hooks[] =
 {
   DEFINE_HOOK(CryptVerifySignatureW),
-  DEFINE_HOOK(ResolveDelayLoadedAPI)
+  DEFINE_HOOK(ResolveDelayLoadedAPI),
+  DEFINE_HOOK(SetSysColors),
 };
 
-static UNICODE_STRING const s_target_images[] =
+static hook_target_image s_target_images[] =
 {
-  RTL_CONSTANT_STRING(L"themeui"),
-  RTL_CONSTANT_STRING(L"themeservice"),
-  RTL_CONSTANT_STRING(L"uxinit"),
-  RTL_CONSTANT_STRING(L"uxtheme"),
+  { RTL_CONSTANT_STRING(L"themeui"),          0b011 },
+  { RTL_CONSTANT_STRING(L"themeservice"),     0b011 },
+  { RTL_CONSTANT_STRING(L"uxinit"),           0b011 },
+  { RTL_CONSTANT_STRING(L"uxtheme"),          0b011 },
+  { RTL_CONSTANT_STRING(L"logoncontroller"),  0b100 },
 };
 
 void* get_original_from_hook_address(void* hook_address)
@@ -234,8 +251,18 @@ static void hook_thunks(PVOID base, PIMAGE_THUNK_DATA thunk, PIMAGE_THUNK_DATA o
   {
     if (!(original_thunk->u1.Ordinal & IMAGE_ORDINAL_FLAG))
     {
-      for (auto& hook : s_hooks)
+      ULONG bitmap = 0u;
+      for (const auto& image : s_target_images)
+        if (image.base == base)
+          bitmap = image.hook_bitmap;
+
+      for (auto i = 0u; i < std::size(s_hooks); ++i)
       {
+        if (!(bitmap & (1 << i)))
+          continue;
+
+        auto& hook = s_hooks[i];
+
         const auto by_name = PIMAGE_IMPORT_BY_NAME((char*)base + original_thunk->u1.AddressOfData);
         if ((hook.old_address && hook.old_address == PVOID(thunk->u1.Function)) || 0 == strcmp(by_name->Name, hook.function_name.Buffer))
         {
@@ -308,11 +335,12 @@ static VOID NTAPI DllLoadCallback(PWSTR DllName, PVOID DllBase, SIZE_T DllSize, 
 
   DebugPrint("Got notification of %S being loaded at %p\n", DllName, DllBase);
 
-  for (const auto& target : s_target_images)
+  for (auto& target : s_target_images)
   {
-    if (0 == _wcsnicmp(DllName, target.Buffer, target.Length / sizeof(wchar_t)))
+    if (0 == _wcsnicmp(DllName, target.name.Buffer, target.name.Length / sizeof(wchar_t)))
     {
       DebugPrint("IAT Hooking %S\n", DllName);
+      target.base = DllBase;
       apply_iat_hooks_on_dll(DllBase);
     }
   }
@@ -368,4 +396,20 @@ ResolveDelayLoadedAPI_Hook(
   hook_thunks(base, thunk, original_thunk);
 
   return ret;
+}
+
+BOOL
+WINAPI
+SetSysColors_Hook(
+  _In_                  int             cElements,
+  _In_reads_(cElements) CONST INT       *lpaElements,
+  _In_reads_(cElements) CONST COLORREF  *lpaRgbValues
+)
+{
+  UNREFERENCED_PARAMETER(cElements);
+  UNREFERENCED_PARAMETER(lpaElements);
+  UNREFERENCED_PARAMETER(lpaRgbValues);
+
+  DebugPrint("Called");
+  return TRUE;
 }
