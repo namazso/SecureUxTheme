@@ -107,7 +107,7 @@
       <LargeAddressAware>true</LargeAddressAware>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
-      <AdditionalDependencies>ntdll.lib;$(ProjectDir)lib\$(Platform)\ntdll.lib;kernel32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;$(SolutionDir)obj\$(Platform)\ntdll.lib</AdditionalDependencies>
       <EntryPointSymbol>DllMain@12</EntryPointSymbol>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <GenerateMapFile>true</GenerateMapFile>
@@ -136,7 +136,7 @@
       <LargeAddressAware>true</LargeAddressAware>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
-      <AdditionalDependencies>ntdll.lib;$(ProjectDir)lib\$(Platform)\ntdll.lib;kernel32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;$(SolutionDir)obj\$(Platform)\ntdll.lib</AdditionalDependencies>
       <EntryPointSymbol>DllMain</EntryPointSymbol>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <GenerateMapFile>true</GenerateMapFile>
@@ -165,7 +165,7 @@
       <LargeAddressAware>true</LargeAddressAware>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
-      <AdditionalDependencies>ntdll.lib;$(ProjectDir)lib\$(Platform)\ntdll.lib;kernel32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;$(SolutionDir)obj\$(Platform)\ntdll.lib</AdditionalDependencies>
       <EntryPointSymbol>DllMain@12</EntryPointSymbol>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -196,7 +196,7 @@
       <LargeAddressAware>true</LargeAddressAware>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
-      <AdditionalDependencies>ntdll.lib;$(ProjectDir)lib\$(Platform)\ntdll.lib;kernel32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;$(SolutionDir)obj\$(Platform)\ntdll.lib</AdditionalDependencies>
       <EntryPointSymbol>DllMain</EntryPointSymbol>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
