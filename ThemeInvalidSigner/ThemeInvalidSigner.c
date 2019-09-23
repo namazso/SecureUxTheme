@@ -17,6 +17,16 @@
 #include <windows.h>
 #include <wchar.h>
 
+typedef struct _THEME_SIGNATURE_HEADER
+{
+  ULONG Magic;
+  ULONG SignatureOffset;
+  ULONGLONG FileSize;
+} THEME_SIGNATURE_HEADER;
+
+#define THEME_SIGNATURE_MAGIC ((ULONG)(0x84692426))
+#define THEME_SIGNATURE_SIZE (128u)
+
 static HRESULT ResultFromKnownLastError(void)
 {
   return HRESULT_FROM_WIN32(GetLastError());
@@ -24,18 +34,17 @@ static HRESULT ResultFromKnownLastError(void)
 
 static HRESULT /*CThemeSignature::*/ReadSignature(
   /*CThemeSignature *this,*/
-  HANDLE file,
-  PBYTE signature
+  HANDLE File,
+  PBYTE Signature
 )
 {
-  HRESULT result; // eax
-  BOOLEAN v6; // cc
-  DWORD NumberOfBytesRead; // [rsp+30h] [rbp-30h]
-  LARGE_INTEGER DistanceToMove; // [rsp+38h] [rbp-28h]
-  ULARGE_INTEGER FileSize; // [rsp+40h] [rbp-20h]
-  DWORD Buffer[4]; // [rsp+48h] [rbp-18h]
+  DWORD Result;
+  DWORD NumberOfBytesRead;
+  LARGE_INTEGER DistanceToMove;
+  ULARGE_INTEGER FileSize;
+  THEME_SIGNATURE_HEADER SignatureHeader;
 
-  FileSize.LowPart = GetFileSize(file, &FileSize.HighPart);
+  FileSize.LowPart = GetFileSize(File, &FileSize.HighPart);
   // Yes, this is indeed incorrect, you're supposed to check GetLastError(),
   // in case a file size's low DWORD just happens to be 0xFFFFFFFF. However,
   // since this error exists in the Windows implementation we should probably
@@ -43,40 +52,38 @@ static HRESULT /*CThemeSignature::*/ReadSignature(
   // added invalid signature. And anyways, who wants 4 GB+ themes?
   if (FileSize.LowPart == INVALID_FILE_SIZE)
     return ResultFromKnownLastError();
-  DistanceToMove.QuadPart = -16;
-  if (SetFilePointer(file, DistanceToMove.LowPart, &DistanceToMove.HighPart, FILE_END) == INVALID_SET_FILE_POINTER)
-  {
-    result = GetLastError();
-    v6 = result <= 0;
-    if (result)
-      goto LABEL_15;
-  }
-  if (!ReadFile(file, Buffer, 16u, &NumberOfBytesRead, 0))
-    goto LABEL_14;
-  if (NumberOfBytesRead != 16 || Buffer[0] != 0x84692426 || FileSize.QuadPart != *(PDWORD64)&Buffer[2])
-    return 0x80004005;
-  DistanceToMove.QuadPart = -16 - (LONGLONG)Buffer[1];
-  if (SetFilePointer(file, DistanceToMove.LowPart, &DistanceToMove.HighPart, FILE_END) != INVALID_SET_FILE_POINTER
-    || (result = GetLastError(), v6 = result <= 0, !result))
-  {
-    if (ReadFile(file, signature, 0x80u, &NumberOfBytesRead, NULL))
-      return NumberOfBytesRead != 0x80 ? 0x80004005 : 0;
-  LABEL_14:
-    result = GetLastError();
-    v6 = result <= 0;
-  }
-LABEL_15:
-  if (!v6)
-    result = (WORD)result | 0x80070000;
-  return result;
+
+  DistanceToMove.QuadPart = -(SSIZE_T)sizeof(SignatureHeader);
+  if (SetFilePointer(File, DistanceToMove.LowPart, &DistanceToMove.HighPart, FILE_END) == INVALID_SET_FILE_POINTER)
+    return ResultFromKnownLastError();
+
+  if (!ReadFile(File, &SignatureHeader, sizeof(SignatureHeader), &NumberOfBytesRead, 0))
+    return ResultFromKnownLastError();
+
+  if (NumberOfBytesRead != sizeof(SignatureHeader) || SignatureHeader.Magic != THEME_SIGNATURE_MAGIC || FileSize.QuadPart != SignatureHeader.FileSize)
+    return E_FAIL;
+
+  DistanceToMove.QuadPart = -(SSIZE_T)sizeof(SignatureHeader) - (LONGLONG)SignatureHeader.SignatureOffset;
+  if (SetFilePointer(File, DistanceToMove.LowPart, &DistanceToMove.HighPart, FILE_END) == INVALID_SET_FILE_POINTER && ((Result = GetLastError())))
+    return HRESULT_FROM_WIN32(Result);
+
+  if (!ReadFile(File, Signature, THEME_SIGNATURE_SIZE, &NumberOfBytesRead, NULL))
+    return ResultFromKnownLastError();
+  
+  return NumberOfBytesRead != THEME_SIGNATURE_SIZE ? E_FAIL : NOERROR;
 }
 
 static DWORD do_stuff(PCWSTR file_name)
 {
   DWORD error = ERROR_SUCCESS;
-  HANDLE file = INVALID_HANDLE_VALUE;
+  HANDLE file;
   WCHAR path[MAXSHORT] = L"\\\\?\\";
   BYTE signature[128];
+  ULARGE_INTEGER file_size;
+  LARGE_INTEGER distance;
+  THEME_SIGNATURE_HEADER signature_header;
+  DWORD bytes_written;
+  BOOLEAN succeeded;
 
   if(0 == GetFullPathNameW(
     file_name,
@@ -86,7 +93,7 @@ static DWORD do_stuff(PCWSTR file_name)
   ))
   {
     error = GetLastError();
-    goto cleanup;
+    goto cleanup_nofile;
   }
 
   file = CreateFileW(
@@ -99,110 +106,58 @@ static DWORD do_stuff(PCWSTR file_name)
     NULL
   );
 
-  // check for a "valid" signature on the file
-  HRESULT sig_test = ReadSignature(file, signature);
-  if (!SUCCEEDED(sig_test))
+  if(file == INVALID_HANDLE_VALUE)
   {
-    ULARGE_INTEGER file_size;
+    error = GetLastError();
+    goto cleanup_nofile;
+  }
 
-    file_size.LowPart = GetFileSize(file, &file_size.HighPart);
-    if (file_size.LowPart == INVALID_FILE_SIZE)
-    {
-      error = GetLastError();
-      if (error != NO_ERROR)
-        goto cleanup;
-    }
-
-    LARGE_INTEGER distance;
-    distance.QuadPart = 0;
-
-    if (SetFilePointer(file, distance.LowPart, &distance.HighPart, FILE_END) == INVALID_SET_FILE_POINTER)
-    {
-      error = GetLastError();
-      if (error != NO_ERROR)
-        goto cleanup;
-    }
-
-    DWORD written;
-    ZeroMemory(signature, sizeof(signature));
-
-    // write an invalid signature (all nulls)
-    BOOL succeeded = WriteFile(
-      file,
-      signature,
-      sizeof(signature),
-      &written,
-      NULL
-    );
-
-    if (!succeeded)
-    {
-      error = GetLastError();
+  // check for a "valid" signature on the file
+  if (SUCCEEDED(ReadSignature(file, signature)))
+  {
+    // There is a valid signature on the file already
+    error = ERROR_SUCCESS;
+    goto cleanup;
+  }
+  
+  if ((file_size.LowPart = GetFileSize(file, &file_size.HighPart)) == INVALID_FILE_SIZE)
+    if ((error = GetLastError()) != ERROR_SUCCESS)
       goto cleanup;
-    }
 
-    DWORD magic = 0x84692426;
-
-    // write magic number for signature
-    succeeded = WriteFile(
-      file,
-      &magic,
-      sizeof(magic),
-      &written,
-      NULL
-    );
-
-    if (!succeeded)
-    {
-      error = GetLastError();
+  distance.QuadPart = 0;
+  if (SetFilePointer(file, distance.LowPart, &distance.HighPart, FILE_END) == INVALID_SET_FILE_POINTER)
+    if ((error = GetLastError()) != ERROR_SUCCESS)
       goto cleanup;
-    }
 
-    DWORD negative_distance_from_magic = 0x80;
+  signature_header.Magic = THEME_SIGNATURE_MAGIC;
+  signature_header.SignatureOffset = THEME_SIGNATURE_SIZE; // We might aswell just let random data be the signature
+  signature_header.FileSize = file_size.QuadPart + sizeof(THEME_SIGNATURE_HEADER);
+  succeeded = WriteFile(
+    file,
+    &signature_header,
+    sizeof(signature_header),
+    &bytes_written,
+    NULL
+  );
 
-    // write the backwards distance of signature from magic
-    succeeded = WriteFile(
-      file,
-      &negative_distance_from_magic,
-      sizeof(negative_distance_from_magic),
-      &written,
-      NULL
-    );
-
-    if (!succeeded)
-    {
-      error = GetLastError();
-      goto cleanup;
-    }
-
-    file_size.QuadPart += 0x80 + 4 + 4 + 8;
-
-    // write new file size
-    succeeded = WriteFile(
-      file,
-      &file_size,
-      sizeof(file_size),
-      &written,
-      NULL
-    );
-
-    if (!succeeded)
-    {
-      error = GetLastError();
-      goto cleanup;
-    }
+  if (!succeeded || bytes_written != sizeof(signature_header))
+  {
+    error = GetLastError();
+    goto cleanup;
   }
 
 cleanup:
-
   CloseHandle(file);
 
+cleanup_nofile:
   return error;
 }
 
 int wmain(int argc, wchar_t *argv[], wchar_t *envp[])
 {
   DWORD error = ERROR_SUCCESS;
+  WCHAR buf[1024];
+
   if (argc < 2)
   {
     wprintf(L"Usage: ThemeInvalidSigner <filename>\n");
@@ -213,7 +168,6 @@ int wmain(int argc, wchar_t *argv[], wchar_t *envp[])
     error = do_stuff(argv[1]);
   }
 
-  WCHAR buf[1024];
   FormatMessageW(
     FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
     NULL,
