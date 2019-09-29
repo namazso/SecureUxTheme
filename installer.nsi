@@ -163,8 +163,8 @@ Function InstallRegistryKeys
 	
 	Push "winlogon.exe"
 	Call IFEOAddEntry
-	Push "dwm.exe"
-	Call IFEOAddEntry
+	;Push "dwm.exe"
+	;Call IFEOAddEntry
 	
 	${NSD_GetState} $CHECKBOX_EXPLORER $0
 	${If} $0 == ${BST_CHECKED}

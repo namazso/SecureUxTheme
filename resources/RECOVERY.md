@@ -6,7 +6,7 @@
    - Do note that you need this from your normal windows installation, and not WinPE (so the one on C: and not X: for most people)
 4. When it asks a name type in anything
 5. Open that key, and navigate to `Microsoft\Windows NT\CurrentVersion\Image File Execution Options\` in it
-6. Delete values `VerifierDlls` and `GlobalFlag` from keys `systemsettings.exe`, `explorer.exe`, `winlogon.exe`, `dwm.exe`, `LogonUI.exe`
+6. Delete values `VerifierDlls` and `GlobalFlag` from keys `systemsettings.exe`, `explorer.exe`, `winlogon.exe`, `LogonUI.exe`
    - You can just delete the keys for the ones that don't contain other values
    - Keys `systemsettings.exe`, `explorer.exe`, `LogonUI.exe` may not exist or not have the keys if you didn't install hook for them
 7. Reboot. Your system should boot properly now
