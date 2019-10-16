@@ -19,7 +19,7 @@ Styles must still have a format-wise valid signature appended, it is just not ve
 ## Operating System Support\*
 
 * Windows 8.1
-* Windows 10 (tested: 1507, 1607, 1809, 1903, 20H1 Insider 18963)
+* Windows 10 (tested: 1507, 1607, 1809, 1903, 1909, 20H1 Insider 18963)
 * Future versions\*\*
 
 \* Windows 7 will never be supported due to the way themes are implemented.
