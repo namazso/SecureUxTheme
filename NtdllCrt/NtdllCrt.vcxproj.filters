@@ -15,8 +15,8 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="ntdll.def">
+    <CustomBuild Include="ntdll.def">
       <Filter>Source Files</Filter>
-    </None>
+    </CustomBuild>
   </ItemGroup>
 </Project>
