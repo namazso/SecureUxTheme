@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#include <windows.h>
+#include <Windows.h>
 #include <wchar.h>
 
 typedef struct _THEME_SIGNATURE_HEADER
@@ -78,7 +78,7 @@ static DWORD do_stuff(PCWSTR file_name)
   DWORD error = ERROR_SUCCESS;
   HANDLE file;
   WCHAR path[MAXSHORT] = L"\\\\?\\";
-  BYTE signature[128];
+  BYTE signature[THEME_SIGNATURE_SIZE];
   ULARGE_INTEGER file_size;
   LARGE_INTEGER distance;
   THEME_SIGNATURE_HEADER signature_header;
