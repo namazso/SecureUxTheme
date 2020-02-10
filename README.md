@@ -22,13 +22,17 @@ Styles must still have a format-wise valid signature appended, it is just not ve
 * Windows 10 (tested: 1507, 1607, 1809, 1903, 1909, 20H1 Insider 18963)
 * Future versions\*\*
 
-\* Windows 7 will never be supported due to the way themes are implemented.
+\* Windows 7 or older will never be supported due to the way themes are implemented.
 
 \*\* The current code doesn't depend on any code, binary or memory layout of uxtheme and related dlls, therefore should work unless major changes are made to how themes in general work.
 
 ## Download
 
 [Latest release](https://github.com/namazso/SecureUxTheme/releases/latest/download/SecureUxTheme_setup.exe)
+
+## Download is MALWARE???
+
+Some silly antiviruses tend to flag the installer as malware, because it's elevated and unsigned (this method [clearly](https://www.securityweek.com/use-fake-code-signing-certificates-malware-surges) [works](https://www.zdnet.com/article/hackers-are-selling-legitimate-code-signing-certificates-to-evade-malware-detection/) [btw](http://signedmalware.org/)). I'm submitting all releases before release to Microsoft for analysis if they're detected, but I can't guarantee the same for all the other AVs. Since I'm not planning to have my IRL name plastered everywhere, I won't be getting a signing certificate either. However if you do have one and are willing help signing, please contach me.
 
 ## LogonUI fix
 
