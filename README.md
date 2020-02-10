@@ -77,6 +77,7 @@ For recovering from such situation there is a [document](resources/RECOVERY.md) 
 
 * Visual Studio 2017 (newer ones not tested)
 * [Nullsoft Scriptable Install System](https://nsis.sourceforge.io/)
+* [NSIS HandleFileDragDrop plug-in](https://nsis.sourceforge.io/HandleFileDragDrop_plug-in)
 
 ### Compiling
 
