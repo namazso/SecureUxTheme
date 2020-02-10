@@ -33,64 +33,66 @@ LicenseData "LICENSE"
 SubCaption 0 ": License"
 
 Page license
-Page custom install_page
+Page custom MakeInstallPage
 !pragma warning disable 8000 ; "Page instfiles not used, no sections will be executed!"
 
 Var LABEL
-Var CHECKBOX_EXPLORER
 Var CHECKBOX_SETTINGS
 Var CHECKBOX_LOGONUI
 
-Function install_page
+Function MakeInstallPage
 	nsDialogs::Create 1018
 	Pop $0
-	
-	${NSD_CreateCheckbox} 2% 8u 46% 8u "Also hook explorer (unsafe)"
-	Pop $CHECKBOX_EXPLORER
-	
-	${NSD_CreateCheckbox} 2% 18u 46% 8u "Also hook SystemSettings"
+		
+	${NSD_CreateCheckbox} 2% 8u 46% 8u "Also hook SystemSettings"
 	Pop $CHECKBOX_SETTINGS
 	
-	${NSD_CreateCheckbox} 2% 28u 46% 8u "LogonUI fix"
+	${NSD_CreateCheckbox} 2% 18u 46% 8u "LogonUI fix"
 	Pop $CHECKBOX_LOGONUI
 	${NSD_Check} $CHECKBOX_LOGONUI
 	
-	${NSD_CreateButton} 2% 40u 22% 15u "Install"
+	${NSD_CreateButton} 2% 30u 22% 15u "Install"
 	Pop $1
 	GetFunctionAddress $0 OnInstall
 	nsDialogs::OnClick $1 $0
 	
-	${NSD_CreateButton} 26% 40u 22% 15u "Uninstall"
+	${NSD_CreateButton} 26% 30u 22% 15u "Uninstall"
 	Pop $1
 	GetFunctionAddress $0 OnUninstall
 	nsDialogs::OnClick $1 $0
 	
-	${NSD_CreateGroupBox} 0 0 50% 58u ""
+	${NSD_CreateGroupBox} 0 0 50% 48u ""
 	Pop $1
 	
-	${NSD_CreateButton} 52% 4u 48% 25u "Fix signature of style"
+	${NSD_CreateButton} 52% 4u 48% 20u "Fix signature of style"
 	Pop $1
 	GetFunctionAddress $0 OnFixSignature
 	nsDialogs::OnClick $1 $0
 	
-	${NSD_CreateButton} 52% 33u 48% 25u "Hooked Personalization"
+	${NSD_CreateButton} 52% 28u 48% 20u "Hooked Personalization"
 	Pop $1
 	GetFunctionAddress $0 OnHookedPersonalization
 	nsDialogs::OnClick $1 $0
 	
-	${NSD_CreateLabel} 0 62u 100% 100u "\
+	${NSD_CreateLabel} 0 52u 100% 100u "\
 	- Hooking SystemSettings enables custom themes in Themes (Settings app)$\n\
 	${U+00A0}${U+00A0}- However that is only available in Windows 10 1703+$\n\
-	- Hooking explorer enables custom themes in Personalization (Control Panel)$\n\
-	${U+00A0}${U+00A0}- It may or may not also break certain 32bit programs using explorer$\n\
-	${U+00A0}${U+00A0}- Instead you can start a single hooked instance with $\"Hooked Personalization$\"$\n\
-	- Styles still need to be signed, it just doesn't need to be valid$\n\
-	${U+00A0}${U+00A0}- You can add an invalid signature to styles with $\"Fix signature of style$\"$\n"
-	Pop $1
+	- You can start a single hooked Personalization with $\"Hooked Personalization$\"$\n\
+	- Styles need to be signed, the signature just doesn't need to be valid$\n\
+	${U+00A0}${U+00A0}- To add an invalid signature to a style click $\"Fix signature of style$\"$\n"
+	Pop $1	
+	
+	GetFunctionAddress $0 OnFileDrop
+	HandleFileDragDrop::Register $HWNDPARENT $0
+	
+	; Allow drag&drop from low integrity to high integrity - https://stackoverflow.com/a/14091973
+	System::Call 'user32::ChangeWindowMessageFilter(i563, i1)'
+	System::Call 'user32::ChangeWindowMessageFilter(i74, i1)'
+	System::Call 'user32::ChangeWindowMessageFilter(i73, i1)'
 	
 	${NSD_CreateLabel} 0 122u 100% 10u ""
 	Pop $LABEL
-
+	
 	nsDialogs::Show
 FunctionEnd
 
@@ -108,27 +110,34 @@ Function IFEODeleteEntry
 	DeleteRegValue HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\$0" "VerifierDlls"
 FunctionEnd
 
+Function FixSignature
+	Pop $0
+	MessageBox MB_OK "$0"
+	
+	File /oname=$TEMP\ThemeInvalidSigner.exe bin\Release\Win32\ThemeInvalidSigner.exe
+	nsExec::ExecToStack '"$TEMP\ThemeInvalidSigner.exe" "$0"'
+	Pop $0 ; return value
+	Pop $1 ; stdout
+	
+	${If} $1 != ""
+		${NSD_SetText} $LABEL $1
+	${Else}
+		${NSD_SetText} $LABEL "Program returned with error $0."
+	${EndIf}
+FunctionEnd
+
+Function OnFileDrop
+	Push $0
+	Call FixSignature
+	StrCpy $0 "" ; ask for next file
+FunctionEnd
+
 Function OnFixSignature
 	nsDialogs::SelectFileDialog open "" "Style|*.msstyles"
 	Pop $0
 	${If} $0 != ""
-		File /oname=$TEMP\ThemeInvalidSigner.exe bin\Release\Win32\ThemeInvalidSigner.exe
-		;ExecWait '"$TEMP\ThemeInvalidSigner.exe" "$0"' $0
-		nsExec::ExecToStack '"$TEMP\ThemeInvalidSigner.exe" "$0"'
-		Pop $0 # return value
-		Pop $1 # stdout
-		
-		${If} $1 != ""
-			${NSD_SetText} $LABEL $1
-		${Else}
-			${NSD_SetText} $LABEL "Program returned with error $0."
-		${EndIf}
-		
-		;${If} $0 != 0
-		;	${NSD_SetText} $LABEL "Program returned with error $0."
-		;${Else}
-		;	${NSD_SetText} $LABEL "Signature successfully fixed."
-		;${EndIf}
+		Push $0
+		Call FixSignature
 	${EndIf}
 FunctionEnd
 
@@ -165,12 +174,6 @@ Function InstallRegistryKeys
 	Call IFEOAddEntry
 	;Push "dwm.exe"
 	;Call IFEOAddEntry
-	
-	${NSD_GetState} $CHECKBOX_EXPLORER $0
-	${If} $0 == ${BST_CHECKED}
-		Push "explorer.exe"
-		Call IFEOAddEntry
-	${EndIf}
 	
 	${NSD_GetState} $CHECKBOX_LOGONUI $0
 	${If} $0 == ${BST_CHECKED}
