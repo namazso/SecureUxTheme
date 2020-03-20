@@ -80,7 +80,7 @@ Function MakeInstallPage
 	- You can start a single hooked Personalization with $\"Hooked Personalization$\"$\n\
 	- Styles need to be signed, the signature just doesn't need to be valid$\n\
 	${U+00A0}${U+00A0}- To add an invalid signature to a style click $\"Fix signature of style$\"$\n\
-	${U+00A0}${U+00A0}- Alternatively, you can simply drag & drop files onto this window.$\n"
+	${U+00A0}${U+00A0}- Alternatively, you can simply drag && drop files onto this window.$\n"
 	Pop $1	
 	
 	GetFunctionAddress $0 OnFileDrop
