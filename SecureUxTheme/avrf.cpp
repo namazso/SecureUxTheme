@@ -296,7 +296,7 @@ static void hook_thunks(PVOID base, PIMAGE_THUNK_DATA thunk, PIMAGE_THUNK_DATA o
   }
 }
 
-static void apply_iat_hooks_on_dll(PVOID dll)
+void apply_iat_hooks_on_dll(PVOID dll)
 {
   const auto base = PUCHAR(dll);
 
@@ -328,22 +328,28 @@ static void apply_iat_hooks_on_dll(PVOID dll)
   }
 }
 
-static VOID NTAPI DllLoadCallback(PWSTR DllName, PVOID DllBase, SIZE_T DllSize, PVOID Reserved)
+EXTERN_C __declspec(dllexport) void dll_loaded(PVOID base, PCWSTR name)
 {
-  UNREFERENCED_PARAMETER(DllSize);
-  UNREFERENCED_PARAMETER(Reserved);
 
   DebugPrint("Got notification of %S being loaded at %p\n", DllName, DllBase);
 
   for (auto& target : s_target_images)
   {
-    if (0 == _wcsnicmp(DllName, target.name.Buffer, target.name.Length / sizeof(wchar_t)))
+    if (0 == _wcsnicmp(name, target.name.Buffer, target.name.Length / sizeof(wchar_t)))
     {
       DebugPrint("IAT Hooking %S\n", DllName);
-      target.base = DllBase;
-      apply_iat_hooks_on_dll(DllBase);
+      target.base = base;
+      apply_iat_hooks_on_dll(base);
     }
   }
+}
+
+static VOID NTAPI DllLoadCallback(PWSTR DllName, PVOID DllBase, SIZE_T DllSize, PVOID Reserved)
+{
+  UNREFERENCED_PARAMETER(DllSize);
+  UNREFERENCED_PARAMETER(Reserved);
+
+  dll_loaded(DllBase, DllName);
 }
 
 BOOL
