@@ -328,7 +328,7 @@ void apply_iat_hooks_on_dll(PVOID dll)
   }
 }
 
-EXTERN_C __declspec(dllexport) void dll_loaded(PVOID base, PCWSTR name)
+void dll_loaded(PVOID base, PCWSTR name)
 {
   DebugPrint("Got notification of %S being loaded at %p\n", name, base);
 

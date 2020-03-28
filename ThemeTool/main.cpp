@@ -31,6 +31,11 @@
 
 #pragma comment(lib, "ComCtl32.lib")
 
+// we use the builtin one so all our crt methods aren't resolved from ntdll
+#pragma comment(lib, "ntdll.lib")
+
+extern void dll_loaded(PVOID base, PCWSTR name);
+
 HINSTANCE g_instance;
 CComPtr<IThemeManager2> g_pThemeManager2;
 bool g_is_elevated;
@@ -96,31 +101,7 @@ static int main_gui(int nCmdShow)
   if (!themeui)
     return POST_ERROR(L"LoadLibrary(themeui) failed, LastError = %08X", GetLastError());
 
-  const auto secureuxtheme = LoadLibraryW(L"secureuxtheme");
-  if (!secureuxtheme)
-  {
-    FormattedMessageBox(
-      nullptr,
-      _T("Warning"),
-      MB_OK | MB_ICONWARNING,
-      L"LoadLibrary(SecureUxTheme) failed, LastError = %08X\n"
-      L"While this is not fatal, if you don't have another UxTheme patcher, setting custom themes won't work.",
-      GetLastError()
-    );
-  }
-  else
-  {
-    const auto dll_loaded = (void(*)(PVOID, PCWSTR))GetProcAddress(secureuxtheme, "dll_loaded");
-    // This could be non-fatal, but chances are the user just forgot to update
-    if (!dll_loaded)
-      return POST_ERROR(
-        L"GetProcAddress failed, LastError = %08X\n"
-        L"Maybe you have an outdated SecureUxTheme installed?",
-        GetLastError()
-      );
-    // enable hooks on themeui
-    dll_loaded(themeui, L"themeui");
-  }
+  dll_loaded(themeui, L"themeui");
 
   const auto dialog = CreateDialogParam(
     g_instance,

@@ -97,6 +97,9 @@ void MainDialog::ApplyTheme(int id)
     pTheme->Release();
   }
 
+  // update patchedness state
+  SelectTheme(id);
+
   auto apply_flags = 0;
   
 #define CHECK_FLAG(flag) apply_flags |= Button_GetCheck(_hwnd_CHECK_ ## flag) ? THEME_APPLY_FLAG_ ## flag : 0
