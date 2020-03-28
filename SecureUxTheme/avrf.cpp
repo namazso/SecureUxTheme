@@ -330,14 +330,13 @@ void apply_iat_hooks_on_dll(PVOID dll)
 
 EXTERN_C __declspec(dllexport) void dll_loaded(PVOID base, PCWSTR name)
 {
-
-  DebugPrint("Got notification of %S being loaded at %p\n", DllName, DllBase);
+  DebugPrint("Got notification of %S being loaded at %p\n", name, base);
 
   for (auto& target : s_target_images)
   {
     if (0 == _wcsnicmp(name, target.name.Buffer, target.name.Length / sizeof(wchar_t)))
     {
-      DebugPrint("IAT Hooking %S\n", DllName);
+      DebugPrint("IAT Hooking %S\n", name);
       target.base = base;
       apply_iat_hooks_on_dll(base);
     }
