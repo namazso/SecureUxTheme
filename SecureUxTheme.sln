@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.572
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29709.97
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SecureUxTheme", "SecureUxTheme\SecureUxTheme.vcxproj", "{BBC7C1EF-F94E-48B5-AAF8-6E11FF26A72F}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -11,6 +11,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ThemeInvalidSigner", "ThemeInvalidSigner\ThemeInvalidSigner.vcxproj", "{B8E6C2E1-F979-4AF5-AF18-AD4FF673D8FF}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NtdllCrt", "NtdllCrt\NtdllCrt.vcxproj", "{9EF2EA5B-B660-4F8A-8ECB-F2DBD19B8435}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ThemeTool", "ThemeTool\ThemeTool.vcxproj", "{D281B2E2-BCB9-4E7F-9FF4-312A52E68D94}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -58,6 +60,16 @@ Global
 		{9EF2EA5B-B660-4F8A-8ECB-F2DBD19B8435}.Release|Win32.Build.0 = Release|Win32
 		{9EF2EA5B-B660-4F8A-8ECB-F2DBD19B8435}.Release|x64.ActiveCfg = Release|x64
 		{9EF2EA5B-B660-4F8A-8ECB-F2DBD19B8435}.Release|x64.Build.0 = Release|x64
+		{D281B2E2-BCB9-4E7F-9FF4-312A52E68D94}.Debug|ARM64.ActiveCfg = Debug|Win32
+		{D281B2E2-BCB9-4E7F-9FF4-312A52E68D94}.Debug|Win32.ActiveCfg = Debug|Win32
+		{D281B2E2-BCB9-4E7F-9FF4-312A52E68D94}.Debug|Win32.Build.0 = Debug|Win32
+		{D281B2E2-BCB9-4E7F-9FF4-312A52E68D94}.Debug|x64.ActiveCfg = Debug|x64
+		{D281B2E2-BCB9-4E7F-9FF4-312A52E68D94}.Debug|x64.Build.0 = Debug|x64
+		{D281B2E2-BCB9-4E7F-9FF4-312A52E68D94}.Release|ARM64.ActiveCfg = Release|ARM64
+		{D281B2E2-BCB9-4E7F-9FF4-312A52E68D94}.Release|Win32.ActiveCfg = Release|Win32
+		{D281B2E2-BCB9-4E7F-9FF4-312A52E68D94}.Release|Win32.Build.0 = Release|Win32
+		{D281B2E2-BCB9-4E7F-9FF4-312A52E68D94}.Release|x64.ActiveCfg = Release|x64
+		{D281B2E2-BCB9-4E7F-9FF4-312A52E68D94}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
