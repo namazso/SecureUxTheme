@@ -51,17 +51,17 @@ Function MakeInstallPage
 	Pop $CHECKBOX_LOGONUI
 	${NSD_Check} $CHECKBOX_LOGONUI
 	
-	${NSD_CreateButton} 2% 30u 22% 15u "Install"
+	${NSD_CreateButton} 2% 28u 22% 13u "Install"
 	Pop $1
 	GetFunctionAddress $0 OnInstall
 	nsDialogs::OnClick $1 $0
 	
-	${NSD_CreateButton} 26% 30u 22% 15u "Uninstall"
+	${NSD_CreateButton} 26% 28u 22% 13u "Uninstall"
 	Pop $1
 	GetFunctionAddress $0 OnUninstall
 	nsDialogs::OnClick $1 $0
 	
-	${NSD_CreateGroupBox} 0 0 50% 48u ""
+	${NSD_CreateGroupBox} 0 0 50% 44u ""
 	Pop $1
 	
 	${NSD_CreateButton} 52% 4u 23% 19u "Fix signature"
@@ -79,14 +79,16 @@ Function MakeInstallPage
 	GetFunctionAddress $0 OnThemeTool
 	nsDialogs::OnClick $1 $0
 	
-	${NSD_CreateLabel} 0 52u 100% 100u "\
-	- ThemeTool provides an interface for patching and applying installed themes$\n\
-	- Hooking SystemSettings enables custom themes in Themes (Settings app)$\n\
-	${U+00A0}${U+00A0}- However that is only available in Windows 10 1703+$\n\
-	- You can start a single hooked Personalization with $\"Personalization$\"$\n\
+	${NSD_CreateLabel} 0 48u 100% 100u "\
+	- For any custom themes to work SecureUxTheme must be installed$\n\
 	- Styles need to be signed, the signature just doesn't need to be valid$\n\
 	${U+00A0}${U+00A0}- To add an invalid signature to a style click $\"Fix signature$\"$\n\
-	${U+00A0}${U+00A0}- Alternatively, you can simply drag && drop files onto this window.$\n"
+	${U+00A0}${U+00A0}- Alternatively, you can simply drag && drop files onto this window.$\n\
+	${U+00A0}${U+00A0}- ThemeTool can automatically add them when applying.$\n\
+	- After install and reboot, there are multiple ways to set themes:$\n\
+	${U+00A0}${U+00A0}- Hooking SystemSettings, patching themes, then Settings (1703+)$\n\
+	${U+00A0}${U+00A0}- Patching themes and clicking $\"Personalization$\" to start a hooked instance$\n\
+	${U+00A0}${U+00A0}- Using ThemeTool to apply themes."
 	Pop $1	
 	
 	GetFunctionAddress $0 OnFileDrop
