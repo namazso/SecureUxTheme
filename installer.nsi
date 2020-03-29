@@ -64,22 +64,28 @@ Function MakeInstallPage
 	${NSD_CreateGroupBox} 0 0 50% 48u ""
 	Pop $1
 	
-	${NSD_CreateButton} 52% 4u 48% 20u "Fix signature of style"
+	${NSD_CreateButton} 52% 4u 23% 19u "Fix signature"
 	Pop $1
 	GetFunctionAddress $0 OnFixSignature
 	nsDialogs::OnClick $1 $0
 	
-	${NSD_CreateButton} 52% 28u 48% 20u "Hooked Personalization"
+	${NSD_CreateButton} 77% 4u 23% 19u "Personalization"
 	Pop $1
 	GetFunctionAddress $0 OnHookedPersonalization
 	nsDialogs::OnClick $1 $0
 	
+	${NSD_CreateButton} 52% 27u 48% 18u "Start ThemeTool"
+	Pop $1
+	GetFunctionAddress $0 OnThemeTool
+	nsDialogs::OnClick $1 $0
+	
 	${NSD_CreateLabel} 0 52u 100% 100u "\
+	- ThemeTool provides an interface for patching and applying installed themes$\n\
 	- Hooking SystemSettings enables custom themes in Themes (Settings app)$\n\
 	${U+00A0}${U+00A0}- However that is only available in Windows 10 1703+$\n\
-	- You can start a single hooked Personalization with $\"Hooked Personalization$\"$\n\
+	- You can start a single hooked Personalization with $\"Personalization$\"$\n\
 	- Styles need to be signed, the signature just doesn't need to be valid$\n\
-	${U+00A0}${U+00A0}- To add an invalid signature to a style click $\"Fix signature of style$\"$\n\
+	${U+00A0}${U+00A0}- To add an invalid signature to a style click $\"Fix signature$\"$\n\
 	${U+00A0}${U+00A0}- Alternatively, you can simply drag && drop files onto this window.$\n"
 	Pop $1	
 	
@@ -131,6 +137,11 @@ Function OnFileDrop
 	Push $0
 	Call FixSignature
 	StrCpy $0 "" ; ask for next file
+FunctionEnd
+
+Function OnThemeTool
+	File /oname=$TEMP\ThemeTool.exe bin\Release\Win32\ThemeTool.exe
+	Exec '"$TEMP\ThemeTool.exe"'
 FunctionEnd
 
 Function OnFixSignature

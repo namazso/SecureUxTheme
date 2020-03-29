@@ -90,7 +90,7 @@ void MainDialog::ApplyTheme(int id)
     Static_SetText(_hwnd_STATIC_STYLE, style);
 
     if (wcslen(style) > 1 && sig::check_file(style) == E_FAIL)
-      sig::fix_file(style);
+      sig::fix_file(style, !g_is_elevated);
 
     SysFreeString(style);
 

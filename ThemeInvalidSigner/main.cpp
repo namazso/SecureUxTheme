@@ -13,10 +13,34 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#pragma once
 
-namespace sig
+#include "../ThemeTool/signature.cpp"
+
+int wmain(int argc, wchar_t* argv[], wchar_t* envp[])
 {
-  HRESULT check_file(LPCWSTR path);
-  HRESULT fix_file(LPCWSTR path, bool allow_relaunch);
+  DWORD error;
+  WCHAR buf[1024];
+
+  if (argc < 2)
+  {
+    wprintf(L"Usage: ThemeInvalidSigner <filename>\n");
+    error = ERROR_INVALID_PARAMETER;
+  }
+  else
+  {
+    error = sig::fix_file(argv[1], false);
+  }
+
+  FormatMessageW(
+    FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+    nullptr,
+    error,
+    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+    buf,
+    _ARRAYSIZE(buf),
+    nullptr
+  );
+
+  wprintf(L"Result: %s", buf);
+  return error;
 }

@@ -17,8 +17,6 @@
 
 #include "signature.h"
 
-#include "main.h"
-
 typedef struct _THEME_SIGNATURE_HEADER
 {
   ULONG Magic;
@@ -159,7 +157,7 @@ HRESULT sig::check_file(LPCWSTR path)
 }
 
 
-HRESULT sig::fix_file(LPCWSTR path)
+HRESULT sig::fix_file(LPCWSTR path, bool allow_relaunch)
 {
   if (SUCCEEDED(check_file(path)))
     return NOERROR;
@@ -170,7 +168,7 @@ HRESULT sig::fix_file(LPCWSTR path)
     if (GetLastError() == ERROR_ACCESS_DENIED)
     {
       // seems like we just don't have access even when elevated. this is an user error
-      if (g_is_elevated)
+      if (!allow_relaunch)
         return HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED);
 
       const auto wstr = std::wstring(L"/S \"") + path + L"\"";

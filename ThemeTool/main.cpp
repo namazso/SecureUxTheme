@@ -132,7 +132,7 @@ static int main_silent(size_t file_count, wchar_t** files, bool verysilent)
   for(auto i = 0u; i < file_count; ++i)
   {
     const auto file = files[i];
-    const auto error = sig::fix_file(file);
+    const auto error = sig::fix_file(file, !g_is_elevated);
     if (hr == NOERROR && FAILED(error))
       hr = error;
     WCHAR buf[1024];
