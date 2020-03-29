@@ -48,6 +48,10 @@ Installer:
 
 ![Installer Screenshot](resources/screenshot_setup.png)
 
+ThemeTool:
+
+![ThemeTool Screenshot](resources/screenshot_themetool.png)
+
 This is only a tool for enabling custom themes, no actual visual changes will be made.
 Regardless, here's a cool theme for illustration:
 
