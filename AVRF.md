@@ -9,6 +9,7 @@ Here and below expected target system as x64, however it will be the same for x8
 **What is Application Verifier (AVrf)?**
 
 You can read it description there -> [MSDN: Application Verifier](http://msdn.microsoft.com/en-us/library/ms220948(v=vs.90).aspx)
+
 and inside WinDBG documentation -> [!avrf WinDBG command](http://msdn.microsoft.com/en-us/library/windows/hardware/ff562138(v=vs.85).aspx)
 
 **Where it works?**
