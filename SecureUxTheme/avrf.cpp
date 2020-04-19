@@ -29,6 +29,8 @@
 #include <WinCrypt.h>
 #include <delayloadhandler.h>
 
+// See AVRF.md to get how this thing works
+
 // Semi-private ntapi stuff
 
 EXTERN_C_START
