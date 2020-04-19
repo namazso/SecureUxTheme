@@ -19,7 +19,7 @@ Styles must still have a format-wise valid signature appended, it is just not ve
 ## Operating System Support\*
 
 * Windows 8.1
-* Windows 10 (tested: 1507, 1607, 1809, 1903, 1909, 20H1 Insider 18963)
+* Windows 10 (tested: 1507, 1607, 1809, 1903, 1909, 2004)
 * Future versions\*\*
 
 \* Windows 7 or older will never be supported due to the way themes are implemented.
@@ -72,31 +72,37 @@ This software is provided completely free of charge to you, however I spent time
 
 ## Frequently Asked Questions
 
-**Q: Help, SecureUxTheme broke my install and it's login looping now**
+### **Q: Help, SecureUxTheme broke my install and it's login looping now**
 
 A: [Help: Login loop after installing SecureUxTheme](https://github.com/namazso/SecureUxTheme/wiki/Help:-Login-loop-after-installing-SecureUxTheme)
 
 ---
 
-**Q: Help, a theme broke my install and it's login looping now**
+### **Q: Help, a theme broke my install and it's login looping now**
 
 A: [Help: Login loop after setting a theme](https://github.com/namazso/SecureUxTheme/wiki/Help:-Login-loop-after-setting-a-theme)
 
 ---
 
-**Q: I just want a themed Windows, what do I do with all this?**
+### **Q: I just want a themed Windows, what do I do with all this?**
 
 A: [Help: Step by step installing SecureUxTheme and a custom theme](https://github.com/namazso/SecureUxTheme/wiki/Help:-Step-by-step-installing-SecureUxTheme-and-a-custom-theme)
 
 ---
 
-**Q: I have 1909 or later, and the Address bar / Search bar is weird when clicked**
+### **Q: I have 1909 or later, and the Address bar / Search bar is weird when clicked**
 
-A: [Issue #6](https://github.com/namazso/SecureUxTheme/issues/6)
+A: See [Issue #6](https://github.com/namazso/SecureUxTheme/issues/6)
 
 ---
 
-**Q: The installer is throwing some error, what do I do?**
+### **Q: Can you make themes per-program?**
+
+A: Unfortunately, this is [close to impossible](https://github.com/namazso/SecureUxTheme/issues/9#issuecomment-611897882)
+
+---
+
+### **Q: The installer is throwing some error, what do I do?**
 
 A: Always follow the installer - reboot after each Install / Uninstall, do reinstalls like `uninstall - reboot - install - reboot` instead of installing twice in a row.
 
@@ -116,7 +122,7 @@ A: Always follow the installer - reboot after each Install / Uninstall, do reins
 ## License Statement
 
 	SecureUxTheme - A secure boot compatible in-memory UxTheme patcher
-	Copyright (C) 2019  namazso
+	Copyright (C) 2020  namazso
 	
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
