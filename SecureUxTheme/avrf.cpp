@@ -1,5 +1,5 @@
 // SecureUxTheme - A secure boot compatible in-memory UxTheme patcher
-// Copyright (C) 2019  namazso
+// Copyright (C) 2020  namazso
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -103,6 +103,18 @@ NtProtectVirtualMemory(
   _Inout_ PSIZE_T RegionSize,
   _In_    ULONG   NewProtect,
   _Out_   PULONG  OldProtect
+);
+
+typedef USHORT RTL_ATOM, *PRTL_ATOM;
+#define RTL_ATOM_INVALID_ATOM (RTL_ATOM)0x0000
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+NtAddAtom(
+  _In_reads_bytes_opt_(Length)  PWSTR AtomName,
+  _In_                          ULONG Length,
+  _Out_opt_                     PRTL_ATOM Atom
 );
 
 typedef PVOID(NTAPI *PDELAYLOAD_FAILURE_SYSTEM_ROUTINE)(
@@ -212,6 +224,38 @@ T* get_original_from_hook_address_wrapper(T* fn)
   return (T*)get_original_from_hook_address((void*)fn);
 }
 
+bool g_is_winlogon = false;
+
+RTL_ATOM add_atom(const wchar_t* name)
+{
+#ifndef NO_ATOMS
+  auto atom = RTL_ATOM_INVALID_ATOM;
+  const auto result = NtAddAtom((PWSTR)name, wcslen(name) * sizeof(wchar_t), &atom);
+  return NT_SUCCESS(result) ? atom : RTL_ATOM_INVALID_ATOM;
+#else
+  return RTL_ATOM_INVALID_ATOM;
+#endif
+}
+
+void check_for_winlogon()
+{
+  struct
+  {
+    UNICODE_STRING ustr;
+    wchar_t name[16];
+  } s{};
+  ULONG ret_len = 0;
+  const auto ret = NtQueryInformationProcess(
+    NtCurrentProcess(),
+    ProcessImageFileName,
+    &s,
+    sizeof(s),
+    &ret_len
+  );
+  if (NT_SUCCESS(ret) && 0 == wcsnicmp(L"winlogon", s.ustr.Buffer, 8))
+    g_is_winlogon = true;
+}
+
 #define GET_ORIGINAL_FUNC(name) (*get_original_from_hook_address_wrapper(&name ## _Hook))
 
 static VOID NTAPI DllLoadCallback(PWSTR DllName, PVOID DllBase, SIZE_T DllSize, PVOID Reserved);
@@ -236,6 +280,7 @@ BOOL WINAPI DllMain(
   case DLL_PROCESS_ATTACH:
     DebugPrint("Attached to process\n");
     LdrDisableThreadCalloutsForDll(dll_handle);
+    check_for_winlogon();
     break;
   case DLL_PROCESS_VERIFIER:
     DebugPrint("Setting verifier provider\n");
@@ -370,6 +415,9 @@ CryptVerifySignatureW_Hook(
   UNREFERENCED_PARAMETER(hPubKey);
   UNREFERENCED_PARAMETER(szDescription);
   UNREFERENCED_PARAMETER(dwFlags);
+
+  if(g_is_winlogon)
+    add_atom(L"SecureUxTheme_CalledInWinlogon");
 
   DebugPrint("Called");
   return TRUE;
