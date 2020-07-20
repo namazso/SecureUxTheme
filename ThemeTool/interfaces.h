@@ -50,48 +50,58 @@ struct ISlideshowSettings;
 // const CThemeFile::`vftable'{for `ITheme'}
 struct ITheme : IUnknown
 {
-  LPWSTR GetDisplayName()
+  std::wstring GetDisplayName()
   {
     LPWSTR lpwstr = nullptr;
     const auto hr = get_DisplayName(&lpwstr);
-    if(FAILED(hr))
+    if(FAILED(hr) || !lpwstr)
     {
       WCHAR msg[64];
       wsprintf(msg, L"Error: %08X", hr);
-      lpwstr = SysAllocString(msg);
+      return { msg };
     }
-    return lpwstr;
+    std::wstring wstr{ lpwstr };
+    SysFreeString(lpwstr);
+    return wstr;
   }
 
-  LPWSTR GetVisualStyle()
+  std::wstring GetVisualStyle()
   {
     LPWSTR lpwstr = nullptr;
     auto hr = get_VisualStyle2(&lpwstr);
-    if(SUCCEEDED(hr))
+    if(SUCCEEDED(hr) && lpwstr)
     {
       const auto lower = CharLowerW(SysAllocString(lpwstr));
       const auto is_style = wcsstr(lower, L"msstyles") != nullptr;
       SysFreeString(lower);
       if(is_style)
-        return lpwstr;
+      {
+        std::wstring wstr{ lpwstr };
+        SysFreeString(lpwstr);
+        return wstr;
+      }
       SysFreeString(lpwstr);
     }
     lpwstr = nullptr;
     hr = get_VisualStyle(&lpwstr);
-    if (SUCCEEDED(hr))
+    if (SUCCEEDED(hr) && lpwstr)
     {
       const auto lower = CharLowerW(SysAllocString(lpwstr));
       const auto is_style = wcsstr(lower, L"msstyles") != nullptr;
       SysFreeString(lower);
       if (is_style)
-        return lpwstr;
+      {
+        std::wstring wstr{ lpwstr };
+        SysFreeString(lpwstr);
+        return wstr;
+      }
       SysFreeString(lpwstr);
-      return SysAllocString(L"Error: Can't find get_VisualStyle");
+      return { L"Error: Can't find get_VisualStyle" };
     }
 
     WCHAR msg[64];
     wsprintf(msg, L"Error: %08X", hr);
-    return SysAllocString(msg);
+    return { msg };
   }
 
 private:

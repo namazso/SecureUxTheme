@@ -25,7 +25,13 @@
 #include <CommCtrl.h>
 #include <atlbase.h>
 #include <shellapi.h>
+#include <winternl.h>
+#include <wtsapi32.h>
 
+#include <tuple>
 #include <list>
 #include <memory>
 #include <string>
+#include <vector>
+#include <string_view>
+#include <random>

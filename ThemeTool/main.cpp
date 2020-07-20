@@ -19,7 +19,7 @@
 
 #include "dlg.h"
 #include "MainDialog.h"
-#include "signature.h"
+#include "utl.h"
 
 #pragma comment(linker, \
   "\"/manifestdependency:type='Win32' "\
@@ -30,6 +30,8 @@
   "language='*'\"")
 
 #pragma comment(lib, "ComCtl32.lib")
+#pragma comment(lib, "Advapi32.lib")
+#pragma comment(lib, "Wtsapi32.lib")
 
 // we use the builtin one so all our crt methods aren't resolved from ntdll
 #pragma comment(lib, "ntdll.lib")
@@ -38,29 +40,6 @@ extern void dll_loaded(PVOID base, PCWSTR name);
 
 HINSTANCE g_instance;
 CComPtr<IThemeManager2> g_pThemeManager2;
-bool g_is_elevated;
-
-static bool is_elevated()
-{
-  auto   result   = FALSE;
-  HANDLE token = nullptr;
-  if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token))
-  {
-    TOKEN_ELEVATION elevation;
-    DWORD           size = sizeof(TOKEN_ELEVATION);
-    if (GetTokenInformation(
-      token,
-      TokenElevation,
-      &elevation,
-      sizeof(elevation),
-      &size
-    ))
-      result = elevation.TokenIsElevated;
-  }
-  if (token)
-    CloseHandle(token);
-  return result;
-}
 
 inline int FormattedMessageBox(HWND hwnd, LPCTSTR caption, UINT type, LPCTSTR fmt, ...)
 {
@@ -125,39 +104,52 @@ static int main_gui(int nCmdShow)
   return (int)msg.wParam;
 }
 
-static int main_silent(size_t file_count, wchar_t** files, bool verysilent)
+int show_license()
 {
-  HRESULT hr = NOERROR;
-  std::wstring msg;
-  for(auto i = 0u; i < file_count; ++i)
-  {
-    const auto file = files[i];
-    const auto error = sig::fix_file(file, !g_is_elevated);
-    if (hr == NOERROR && FAILED(error))
-      hr = error;
-    WCHAR buf[1024];
-    FormatMessageW(
-      FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-      nullptr,
-      error,
-      MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-      buf,
-      _ARRAYSIZE(buf),
-      nullptr
-    );
-    wchar_t msgbuf[2048];
-    wsprintf(msgbuf, L"%s: %s", file_count == 1 ? L"Result" : file, buf);
-    msg += msgbuf;
-  }
-  if(!verysilent)
-    MessageBoxW(nullptr, msg.c_str(), L"Result", FAILED(hr) ? MB_ICONERROR : MB_OK);
-  return hr;
-}
+  wchar_t file_name[MAX_PATH];
 
-struct LocalFreeDeleter
-{
-  void operator()(void* p) const { if(p) LocalFree(p); }
-};
+  //  Gets the temp path env string (no guarantee it's a valid path).
+  wchar_t temp_path[MAX_PATH];
+  auto ret = GetTempPathW(
+    MAX_PATH,
+    temp_path
+  );
+  if (ret > MAX_PATH || ret == 0)
+    return POST_ERROR(L"GetTempPathW failed: %08X", GetLastError());
+
+  ret = GetTempFileNameW(
+    temp_path,
+    L"SecureUxTheme",
+    0,
+    file_name
+  );
+  if (ret == 0)
+    return POST_ERROR(L"GetTempFileNameW failed: %08X", GetLastError());
+
+  const auto license = utl::get_resource(256, IDR_LICENSE);
+  if(!license.first)
+    return POST_ERROR(L"utl::get_resource failed: %08X", GetLastError());
+
+  wcscat_s(file_name, L".txt");
+
+  ret = utl::write_file(file_name, license.first, license.second);
+  if (ret)
+    return POST_ERROR(L"utl::write_file failed: %08X", ret);
+
+  ret = (DWORD)ShellExecuteW(
+    nullptr,
+    L"edit",
+    file_name,
+    nullptr,
+    nullptr,
+    SW_SHOWNORMAL
+  );
+
+  if(ret <= 32)
+    return POST_ERROR(L"ShellExecuteW failed: %08X", ret);
+
+  return 0;
+}
 
 int APIENTRY wWinMain(
   _In_ HINSTANCE     hInstance,
@@ -171,15 +163,13 @@ int APIENTRY wWinMain(
 
   g_instance = hInstance;
 
-  g_is_elevated = is_elevated();
+  const auto license_read = IDYES == MessageBoxW(
+    nullptr,
+    L"Have you read and agree to the license?\r\n"
+    L"Answering \"No\" will open the license text.",
+    L"License",
+    MB_YESNO
+  );
 
-  {
-    int argc;
-    const std::unique_ptr<wchar_t*, LocalFreeDeleter> argvbuf{ CommandLineToArgvW(lpCmdLine, &argc) };
-    const auto argv = argvbuf.get();
-    if (argc >= 2 && 0 == _wcsicmp(argv[0], L"/s"))
-      return main_silent((size_t)argc - 1, argv + 1, argv[0][1] == L'S');
-  }
-
-  return main_gui(nCmdShow);
+  return license_read ? main_gui(nCmdShow) : show_license();
 }

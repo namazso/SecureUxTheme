@@ -19,5 +19,3 @@
 
 extern HINSTANCE g_instance;
 extern CComPtr<IThemeManager2> g_pThemeManager2;
-
-extern bool g_is_elevated;

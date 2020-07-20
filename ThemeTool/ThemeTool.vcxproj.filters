@@ -30,6 +30,9 @@
     <ClCompile Include="..\SecureUxTheme\avrf.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="utl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="ThemeTool.rc">
@@ -61,5 +64,14 @@
     <ClInclude Include="signature.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="utl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\bin\Release\Win32\SecureUxTheme.dll" />
+    <None Include="..\bin\Release\x64\SecureUxTheme.dll" />
+    <None Include="..\bin\Release\ARM64\SecureUxTheme.dll" />
+    <None Include="..\LICENSE" />
   </ItemGroup>
 </Project>

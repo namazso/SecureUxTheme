@@ -3,6 +3,10 @@
 // Used by ThemeTool.rc
 //
 #define IDD_MAIN                        103
+#define IDR_SECUREUXTHEME_DLL_X86       110
+#define IDR_SECUREUXTHEME_DLL_X64       111
+#define IDR_SECUREUXTHEME_DLL_ARM64     112
+#define IDR_LICENSE                     113
 #define IDC_CHECK_IGNORE_BACKGROUND     1002
 #define IDC_CHECK_IGNORE_CURSOR         1003
 #define IDC_CHECK_IGNORE_DESKTOP_ICONS  1004
@@ -35,6 +39,6 @@
 #define _APS_NEXT_RESOURCE_VALUE        129
 #define _APS_NEXT_COMMAND_VALUE         32771
 #define _APS_NEXT_CONTROL_VALUE         1032
-#define _APS_NEXT_SYMED_VALUE           110
+#define _APS_NEXT_SYMED_VALUE           113
 #endif
 #endif

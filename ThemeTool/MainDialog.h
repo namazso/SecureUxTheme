@@ -16,21 +16,54 @@
 #pragma once
 #include "dlg.h"
 
+enum class PatcherState : size_t
+{
+  No,
+  Yes,
+  Probably,
+  Outdated
+};
+
 class MainDialog
 {
   HWND _hwnd;
 
-  MAKE_IDC_MEMBER(_hwnd, COMBO_THEMES);
+  MAKE_IDC_MEMBER(_hwnd, BUTTON_APPLY);
+  MAKE_IDC_MEMBER(_hwnd, BUTTON_HELP);
+  MAKE_IDC_MEMBER(_hwnd, BUTTON_INSTALL);
+  MAKE_IDC_MEMBER(_hwnd, BUTTON_UNINSTALL);
+  MAKE_IDC_MEMBER(_hwnd, CHECK_COLORS);
+  MAKE_IDC_MEMBER(_hwnd, CHECK_EXPLORER);
   MAKE_IDC_MEMBER(_hwnd, CHECK_IGNORE_BACKGROUND);
+  MAKE_IDC_MEMBER(_hwnd, CHECK_IGNORE_COLOR);
   MAKE_IDC_MEMBER(_hwnd, CHECK_IGNORE_CURSOR);
   MAKE_IDC_MEMBER(_hwnd, CHECK_IGNORE_DESKTOP_ICONS);
-  MAKE_IDC_MEMBER(_hwnd, CHECK_IGNORE_COLOR);
   MAKE_IDC_MEMBER(_hwnd, CHECK_IGNORE_SOUND);
+  MAKE_IDC_MEMBER(_hwnd, CHECK_LOGONUI);
+  MAKE_IDC_MEMBER(_hwnd, CHECK_SYSTEMSETTINGS);
+  MAKE_IDC_MEMBER(_hwnd, LIST);
+  MAKE_IDC_MEMBER(_hwnd, LOG);
+  MAKE_IDC_MEMBER(_hwnd, STATIC_ASADMIN);
+  MAKE_IDC_MEMBER(_hwnd, STATIC_EXPLORER);
+  MAKE_IDC_MEMBER(_hwnd, STATIC_INSTALLED);
+  MAKE_IDC_MEMBER(_hwnd, STATIC_LOADED);
+  MAKE_IDC_MEMBER(_hwnd, STATIC_LOGONUI);
+  MAKE_IDC_MEMBER(_hwnd, STATIC_NEEDS_PATCHING);
   MAKE_IDC_MEMBER(_hwnd, STATIC_STYLE);
-  MAKE_IDC_MEMBER(_hwnd, STATIC_NEEDS_PATCH);
-  MAKE_IDC_MEMBER(_hwnd, BUTTON_APPLY);
+  MAKE_IDC_MEMBER(_hwnd, STATIC_SYSTEMSETTINGS);
+
+  PatcherState _is_installed;
+  PatcherState _is_loaded;
+  PatcherState _is_explorer;
+  PatcherState _is_systemsettings;
+  PatcherState _is_logonui;
 
   std::list<std::wstring> _names;
+
+  void Log(const wchar_t* fmt, ...);
+  bool IsInstalledForExecutable(const wchar_t* executable);
+  void UpdatePatcherState();
+  void UpdatePatcherStateDisplay();
 
   void SelectTheme(int id);
   void ApplyTheme(int id);

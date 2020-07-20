@@ -252,7 +252,7 @@ void check_for_winlogon()
     sizeof(s),
     &ret_len
   );
-  if (NT_SUCCESS(ret) && 0 == wcsnicmp(L"winlogon", s.ustr.Buffer, 8))
+  if (NT_SUCCESS(ret) && 0 == _wcsnicmp(L"winlogon", s.ustr.Buffer, 8))
     g_is_winlogon = true;
 }
 

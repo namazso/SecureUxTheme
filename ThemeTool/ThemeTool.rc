@@ -26,6 +26,20 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
 /////////////////////////////////////////////////////////////////////////////
 //
+// 256
+//
+
+IDR_SECUREUXTHEME_DLL_X86 256                     "../bin/Release/Win32/SecureUxTheme.dll"
+
+IDR_SECUREUXTHEME_DLL_X64 256                     "../bin/Release/x64/SecureUxTheme.dll"
+
+IDR_SECUREUXTHEME_DLL_ARM64 256                     "../bin/Release/ARM64/SecureUxTheme.dll"
+
+IDR_LICENSE             256                     "../LICENSE"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
 // Dialog
 //
 
@@ -43,7 +57,7 @@ BEGIN
     CONTROL         "Ignore sound",IDC_CHECK_IGNORE_SOUND,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,6,216,59,10
     PUSHBUTTON      "Apply",IDC_BUTTON_APPLY,102,210,104,14
     LTEXT           "",IDC_STATIC_NEEDS_PATCHING,102,198,102,8
-    CONTROL         "",IDC_LIST,"SysListView32",LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,6,6,198,156
+    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,6,6,198,156
     GROUPBOX        "Patcher",-1,216,6,204,72
     LTEXT           "Installed:",-1,222,18,31,8
     LTEXT           "Loaded:",-1,222,30,27,8
@@ -65,7 +79,7 @@ BEGIN
     CONTROL         "Hook LogonUI",IDC_CHECK_LOGONUI,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,222,120,61,10
     CONTROL         "Delete default colors (!)",IDC_CHECK_COLORS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,222,132,92,10
     PUSHBUTTON      "Help me what do these even mean?",IDC_BUTTON_HELP,222,144,192,14
-    EDITTEXT        IDC_LOG,216,168,204,54,ES_AUTOHSCROLL | ES_READONLY
+    EDITTEXT        IDC_LOG,216,168,204,54,ES_MULTILINE | ES_AUTOHSCROLL | ES_READONLY
 END
 
 
