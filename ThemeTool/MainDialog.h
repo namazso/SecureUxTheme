@@ -15,6 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #pragma once
 #include "dlg.h"
+#include "utl.h"
 
 enum class PatcherState : size_t
 {
@@ -57,6 +58,10 @@ class MainDialog
   PatcherState _is_explorer;
   PatcherState _is_systemsettings;
   PatcherState _is_logonui;
+
+  const bool _is_elevated = utl::is_elevated();
+  const std::pair<std::wstring, std::wstring> _process_user = utl::process_user();
+  const std::pair<std::wstring, std::wstring> _session_user = utl::session_user();
 
   std::list<std::wstring> _names;
 

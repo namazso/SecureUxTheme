@@ -339,103 +339,91 @@ int utl::atom_reference_count(const wchar_t* name)
 
 bool utl::is_elevated()
 {
-  static auto elevated = []
+  auto result = FALSE;
+  HANDLE token = nullptr;
+  if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token))
   {
-    auto result = FALSE;
-    HANDLE token = nullptr;
-    if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token))
-    {
-      TOKEN_ELEVATION elevation;
-      DWORD size = sizeof(elevation);
-      if (GetTokenInformation(
-        token,
-        TokenElevation,
-        &elevation,
-        sizeof(elevation),
-        &size
-      ))
-        result = elevation.TokenIsElevated;
+    TOKEN_ELEVATION elevation;
+    DWORD size = sizeof(elevation);
+    if (GetTokenInformation(
+      token,
+      TokenElevation,
+      &elevation,
+      sizeof(elevation),
+      &size
+    ))
+      result = elevation.TokenIsElevated;
 
-      CloseHandle(token);
-    }
-    return !!result;
-  }();
-  return elevated;
+    CloseHandle(token);
+  }
+  return !!result;
 }
 
-const std::pair<std::wstring, std::wstring>& utl::session_user()
+const std::pair<std::wstring, std::wstring> utl::session_user()
 {
-  static const auto w = []
+  LPWSTR wtsinfo_ptr = nullptr;
+  DWORD bytes_returned = 0;
+  const auto success = WTSQuerySessionInformationW(
+    WTS_CURRENT_SERVER_HANDLE,
+    WTS_CURRENT_SESSION,
+    WTSSessionInfo,
+    &wtsinfo_ptr,
+    &bytes_returned
+  );
+  if (success && wtsinfo_ptr)
   {
-    LPWSTR wtsinfo_ptr = nullptr;
-    DWORD bytes_returned = 0;
-    const auto success = WTSQuerySessionInformationW(
-      WTS_CURRENT_SERVER_HANDLE,
-      WTS_CURRENT_SESSION,
-      WTSSessionInfo,
-      &wtsinfo_ptr,
-      &bytes_returned
+    const auto wtsinfo = (WTSINFOW*)wtsinfo_ptr;
+    std::wstring username{ wtsinfo->UserName };
+    std::wstring domain{ wtsinfo->Domain };
+    WTSFreeMemory(wtsinfo_ptr);
+    return std::make_pair(std::move(domain), std::move(username));
+  }
+  return {};
+}
+
+const std::pair<std::wstring, std::wstring> utl::process_user()
+{
+  std::pair<std::wstring, std::wstring> pair;
+  HANDLE token = nullptr;
+  if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token))
+  {
+    struct data_s
+    {
+      TOKEN_USER user;
+      char data[0x800];
+    } s;
+    static_assert(offsetof(data_s, user) == 0, "this is not good");
+
+    DWORD size = sizeof(s);
+    auto success = GetTokenInformation(
+      token,
+      TokenUser,
+      &s,
+      sizeof(s),
+      &size
     );
-    if (success && wtsinfo_ptr)
+    if (success)
     {
-      const auto wtsinfo = (WTSINFOW*)wtsinfo_ptr;
-      std::wstring username{ wtsinfo->UserName };
-      std::wstring domain{ wtsinfo->Domain };
-      WTSFreeMemory(wtsinfo_ptr);
-      return std::make_pair(std::move(domain), std::move(username));
-    }
-    return std::pair<std::wstring, std::wstring>{};
-  }();
-  return w;
-}
-
-const std::pair<std::wstring, std::wstring>& utl::process_user()
-{
-  static const auto w = []
-  {
-    std::pair<std::wstring, std::wstring> pair;
-    HANDLE token = nullptr;
-    if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token))
-    {
-      struct data_s
-      {
-        TOKEN_USER user;
-        char data[0x800];
-      } s;
-      static_assert(offsetof(data_s, user) == 0, "this is not good");
-
-      DWORD size = sizeof(s);
-      auto success = GetTokenInformation(
-        token,
-        TokenUser,
-        &s,
-        sizeof(s),
-        &size
+      WCHAR username[USERNAME_LENGTH + 1]{};
+      DWORD username_len = std::size(username);
+      WCHAR domain[DOMAIN_LENGTH + 1]{};
+      DWORD domain_len = std::size(domain);
+      SID_NAME_USE name_use{};
+      success = LookupAccountSidW(
+        nullptr,
+        s.user.User.Sid,
+        username,
+        &username_len,
+        domain,
+        &domain_len,
+        &name_use
       );
       if (success)
-      {
-        WCHAR username[USERNAME_LENGTH + 1]{};
-        DWORD username_len = std::size(username);
-        WCHAR domain[DOMAIN_LENGTH + 1]{};
-        DWORD domain_len = std::size(domain);
-        SID_NAME_USE name_use{};
-        success = LookupAccountSidW(
-          nullptr,
-          s.user.User.Sid,
-          username,
-          &username_len,
-          domain,
-          &domain_len,
-          &name_use
-        );
-        if (success)
-          pair = std::pair<std::wstring, std::wstring>(domain, username);
-      }
-      CloseHandle(token);
+        pair = std::pair<std::wstring, std::wstring>(domain, username);
     }
-    return pair;
-  }();
-  return w;
+    CloseHandle(token);
+  }
+  return pair;
 }
 
 DWORD utl::read_file(std::wstring_view path, std::vector<char>& content)

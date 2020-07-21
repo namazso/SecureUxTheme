@@ -21,8 +21,8 @@ namespace utl
   int atom_reference_count(const wchar_t* name);
   bool is_elevated();
 
-  const std::pair<std::wstring, std::wstring>& session_user();
-  const std::pair<std::wstring, std::wstring>& process_user();
+  const std::pair<std::wstring, std::wstring> session_user();
+  const std::pair<std::wstring, std::wstring> process_user();
 
   DWORD read_file(std::wstring_view path, std::vector<char>& content);
   DWORD write_file(std::wstring_view path, const void* data, size_t size);

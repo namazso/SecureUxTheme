@@ -21,6 +21,8 @@
 #include "signature.h"
 #include "utl.h"
 
+extern "C" NTSYSAPI void NTAPI RtlGetNtVersionNumbers(PULONG a1, PULONG a2, PULONG a3);
+
 static const wchar_t* PatcherStateText(PatcherState state)
 {
   static const wchar_t* const text[] = { L"No", L"Yes", L"Probably", L"Outdated" };
@@ -68,7 +70,12 @@ void MainDialog::Log(const wchar_t* fmt, ...)
   vswprintf_s(text, fmt, args);
   va_end(args);
   auto log = GetWindowTextStr(_hwnd_LOG);
-  log.append(L"\r\n");
+  if(!log.empty())
+    log.append(L"\r\n");
+  LARGE_INTEGER li{};
+  QueryPerformanceCounter(&li);
+  log.append(std::to_wstring(li.QuadPart));
+  log.append(L" > ");
   log.append(text);
   SetWindowTextW(_hwnd_LOG, log.c_str());
 }
@@ -98,7 +105,7 @@ bool MainDialog::IsInstalledForExecutable(const wchar_t* executable)
     VerifierDlls,
     &VerifierDlls_size
   );
-  Log(L"%s: (%d) GlobalFlag=%08X (%d) VerifierDlls=%s", executable, ret1, GlobalFlag, ret2, VerifierDlls);
+  Log(L"IsInstalledForExecutable(%s): (%d) GlobalFlag=%08X (%d) VerifierDlls=%s", executable, ret1, GlobalFlag, ret2, VerifierDlls);
   return GlobalFlag & 0x100 && 0 == _wcsicmp(VerifierDlls, kPatcherDllName);
 }
 
@@ -109,9 +116,10 @@ void MainDialog::UpdatePatcherState()
   const auto dll_expected_content = utl::get_dll_blob();
   bool file_has_content;
   bool file_is_same;
+  DWORD file_error;
   {
     std::vector<char> content;
-    utl::read_file(dll_path, content);
+    file_error = utl::read_file(dll_path, content);
     file_has_content = !content.empty();
     const auto begin = (char*)dll_expected_content.first;
     const auto end = begin + dll_expected_content.second;
@@ -123,8 +131,8 @@ void MainDialog::UpdatePatcherState()
   const auto reg_logonui = IsInstalledForExecutable(L"LogonUI.exe");
   const auto bypass_count = WinlogonBypassCount();
   Log(
-    L"file_has_content %d file_is_same %d reg_winlogon %d reg_explorer %d reg_systemsettings %d reg_logonui %d",
-    file_has_content, file_is_same, reg_winlogon, reg_explorer, reg_systemsettings, reg_logonui
+    L"UpdatePatcherState: file_has_content %d file_is_same %d file_error %d bypass_count %d",
+    file_has_content, file_is_same, file_error, bypass_count
   );
   _is_installed =
     (file_has_content && reg_winlogon)
@@ -158,11 +166,17 @@ void MainDialog::UpdatePatcherStateDisplay()
 MainDialog::MainDialog(HWND hDlg, void*)
   : _hwnd(hDlg)
 {
-  const auto elevated = utl::is_elevated();
+  ULONG major = 0, minor = 0, build = 0;
+  RtlGetNtVersionNumbers(&major, &minor, &build);
+  Log(L"Running on %d.%d.%d flavor %01X", major, minor, build & 0xFFFF, build >> 28);
+  
+  Log(L"MainDialog: is_elevated %d", _is_elevated);
 
-  Static_SetText(_hwnd_STATIC_ASADMIN, PatcherStateText(elevated ? PatcherState::Yes : PatcherState::No));
+  Log(L"Session user: %s Process user: %s", _session_user.second.c_str(), _process_user.second.c_str());
 
-  if(!elevated)
+  Static_SetText(_hwnd_STATIC_ASADMIN, PatcherStateText(_is_elevated ? PatcherState::Yes : PatcherState::No));
+
+  if(!_is_elevated)
   {
     Button_Enable(_hwnd_BUTTON_INSTALL, FALSE);
     Button_Enable(_hwnd_BUTTON_UNINSTALL, FALSE);
