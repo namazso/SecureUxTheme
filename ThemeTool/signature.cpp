@@ -132,18 +132,6 @@ static HANDLE open_file(PCTSTR file_name, bool write)
   return file;
 }
 
-inline HANDLE launch_self_as_admin(LPCWSTR args)
-{
-  SHELLEXECUTEINFOW sei = { sizeof(sei) };
-  sei.lpVerb = L"runas";
-  sei.lpFile = _wpgmptr;
-  sei.lpParameters = args;
-  sei.nShow = SW_SHOW;
-  sei.fMask = SEE_MASK_NOCLOSEPROCESS;
-
-  return ShellExecuteExW(&sei) ? sei.hProcess : INVALID_HANDLE_VALUE;
-}
-
 HRESULT sig::check_file(LPCWSTR path)
 {
   const auto file = open_file(path, false);
@@ -156,40 +144,14 @@ HRESULT sig::check_file(LPCWSTR path)
   return hr;
 }
 
-
-HRESULT sig::fix_file(LPCWSTR path, bool allow_relaunch)
+HRESULT sig::fix_file(LPCWSTR path)
 {
   if (SUCCEEDED(check_file(path)))
     return NOERROR;
 
   const auto file = open_file(path, true);
-  if(file == INVALID_HANDLE_VALUE)
-  {
-    if (GetLastError() == ERROR_ACCESS_DENIED)
-    {
-      // seems like we just don't have access even when elevated. this is an user error
-      if (!allow_relaunch)
-        return HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED);
-
-      const auto wstr = std::wstring(L"/S \"") + path + L"\"";
-      const auto process = launch_self_as_admin(wstr.c_str());
-      if (process == INVALID_HANDLE_VALUE)
-        return ResultFromKnownLastError();
-
-      const auto status = WaitForSingleObject(process, INFINITE);
-      if (status == WAIT_FAILED)
-        return ResultFromKnownLastError();
-
-      DWORD exit_code;
-      if (!GetExitCodeProcess(process, &exit_code))
-        exit_code = ResultFromKnownLastError();
-
-      // if check passes we don't care if the process failed later
-      return SUCCEEDED(check_file(path)) ? NOERROR : (HRESULT)exit_code;
-    }
-
+  if (file == INVALID_HANDLE_VALUE)
     return ResultFromKnownLastError();
-  }
 
   const auto hr = WriteSignature(file);
   CloseHandle(file);

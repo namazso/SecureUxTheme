@@ -31,6 +31,17 @@ static const wchar_t* PatcherStateText(PatcherState state)
 
 static constexpr wchar_t kPatcherDllName[] = L"SecureUxTheme.dll";
 static constexpr wchar_t kIFEO[] = L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\";
+static constexpr wchar_t kHelpText[] =
+LR"(- For any custom themes to work SecureUxTheme or another patcher must be installed
+- Styles need to be signed, the signature just doesn't need to be valid
+  - To add an invalid signature to a style click "Fix signature"
+  - Alternatively, you can simply drag && drop files onto this window.
+  - ThemeTool can automatically add them when applying.
+- After install and reboot, there are multiple ways to set themes:
+  - Hooking SystemSettings, patching themes, then Settings (1703+)
+  - Patching themes and clicking "Personalization" to start a hooked instance
+  - Using ThemeTool to apply themes.
+)";
 
 static std::wstring GetPatcherDllPath()
 {
@@ -182,10 +193,14 @@ MainDialog::MainDialog(HWND hDlg, void*)
     Button_Enable(_hwnd_BUTTON_UNINSTALL, FALSE);
   }
 
-  ListView_SetExtendedListViewStyle(_hwnd_LIST, LVS_EX_AUTOSIZECOLUMNS);
+  ListView_SetExtendedListViewStyle(_hwnd_LIST, LVS_EX_AUTOSIZECOLUMNS | LVS_EX_FULLROWSELECT);
   LVCOLUMN col{};
   ListView_InsertColumn(_hwnd_LIST, 0, &col);
   SendMessage(_hwnd_LIST, LVM_SETTEXTBKCOLOR, 0, (LPARAM)CLR_NONE);
+
+  //auto style = GetWindowStyle(_hwnd_LIST);
+  //style |= LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SINGLESEL | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER;
+  //SetWindowLongW(_hwnd_LIST, GWL_STYLE, style);
 
   int iCount = 0;
   g_pThemeManager2->GetThemeCount(&iCount);
@@ -254,31 +269,124 @@ MainDialog::MainDialog(HWND hDlg, void*)
   }
 
   pTheme->Release();
-}
+}*/
 
 void MainDialog::ApplyTheme(int id)
 {
+  Log(L"ApplyTheme(%d)", id);
+
   if (id == -1)
-    return;
+    return; // invalid selection... whatever..
 
+  if(_session_user != _process_user)
   {
-    ITheme* pTheme = nullptr;
-    g_pThemeManager2->GetTheme(id, &pTheme);
+    const auto answer = utl::FormattedMessageBox(
+      _hwnd,
+      L"Warning",
+      MB_YESNO | MB_ICONWARNING,
+      LR"(This program is running as "%s", but you're logged in as "%s".
+Setting a theme will apply it to user "%s".
+Please note that setting a theme can be done as a non-administrator account.
+Are you sure you want to continue?)",
+      _process_user.second.c_str(),
+      _session_user.second.c_str(),
+      _process_user.second.c_str()
+    );
 
-    const auto style = pTheme->GetVisualStyle();
-
-    Static_SetText(_hwnd_STATIC_STYLE, style);
-
-    if (wcslen(style) > 1 && sig::check_file(style) == E_FAIL)
-      sig::fix_file(style, !g_is_elevated);
-
-    SysFreeString(style);
-
-    pTheme->Release();
+    if (answer == IDNO)
+      return;
   }
 
-  // update patchedness state
-  SelectTheme(id);
+  bool patched = true;
+  std::wstring style;
+
+  {
+    CComPtr<ITheme> pTheme = nullptr;
+    auto result = g_pThemeManager2->GetTheme(id, &pTheme);
+    if(SUCCEEDED(result))
+    {
+      result = pTheme->GetVisualStyle(style);
+      if (SUCCEEDED(result))
+      {
+        if (!style.empty() && sig::check_file(style.c_str()) == E_FAIL)
+          patched = false;
+      }
+      else
+      {
+        Log(L"pTheme->GetVisualStyle failed with %08X", result);
+      }
+    }
+    else
+    {
+      Log(L"g_pThemeManager2->GetTheme(%d) failed with %08X", id, result);
+      return;
+    }
+  }
+
+  Log(L"Style path is %s", style.c_str());
+
+  if(_is_installed != PatcherState::No)
+  {
+    HRESULT fix_result = NOERROR;
+    if (!patched)
+    {
+      fix_result = sig::fix_file(style.c_str());
+      patched = SUCCEEDED(fix_result);
+    }
+
+    if(!patched)
+    {
+      Log(L"sig::fix_file failed: %08X", fix_result);
+      const auto answer = utl::FormattedMessageBox(
+        _hwnd,
+        L"Warning",
+        MB_YESNO | MB_ICONWARNING,
+        LR"(You seem to be using SecureUxTheme, however the selected theme isn't patched, patching it now failed.
+%s
+The error encountered was: %s.
+Do you want to continue?)",
+        _is_elevated
+          ? L"Try executing the tool as administrator."
+          : L"It seems like we're already elevated. Consider submitting a but report.",
+        utl::ErrorToString(fix_result).c_str()
+      );
+
+      if (answer == IDNO)
+        return;
+    }
+
+    if(_is_installed == PatcherState::Yes && _is_loaded != PatcherState::Yes)
+    {
+      const auto answer = utl::FormattedMessageBox(
+        _hwnd,
+        L"Warning",
+        MB_YESNO | MB_ICONWARNING,
+        LR"(It seems like SecureUxTheme is installed but not loaded. Custom themes likely won't work.
+Make sure you didn't forget to restart your computer after installing.
+Do you still want to continue?)"
+      );
+
+      if (answer == IDNO)
+        return;
+    }
+  }
+  else
+  {
+    if(!patched)
+    {
+      const auto answer = utl::FormattedMessageBox(
+        _hwnd,
+        L"Warning",
+        MB_YESNO | MB_ICONWARNING,
+        LR"(You seem not to be using SecureUxTheme, and trying to apply an unsigned theme.
+This won't work unless another patcher is installed.
+Are you sure you want to continue?)"
+      );
+
+      if (answer == IDNO)
+        return;
+    }
+  }
 
   auto apply_flags = 0;
   
@@ -292,22 +400,64 @@ void MainDialog::ApplyTheme(int id)
 
 #undef CHECK_FLAG
 
-  g_pThemeManager2->SetCurrentTheme(
-    _hwnd,
-    id,
-    1,
-    (THEME_APPLY_FLAGS)apply_flags,
-    (THEMEPACK_FLAGS)0
-  );
+  const auto old_count = WinlogonBypassCount();
+
+  HRESULT result;
+
+  {
+    utl::unique_redirection_disabler disabler{};
+
+    result = g_pThemeManager2->SetCurrentTheme(
+      _hwnd,
+      id,
+      1,
+      (THEME_APPLY_FLAGS)apply_flags,
+      (THEMEPACK_FLAGS)0
+    );
+  }
+
+  const auto new_count = WinlogonBypassCount();
+
+  Log(L"ApplyTheme: SetCurrentTheme returned %08X atom: %d -> %d", result, old_count, new_count);
+
+  if(FAILED(result))
+  {
+    utl::FormattedMessageBox(
+      _hwnd,
+      L"Error",
+      MB_OK | MB_ICONERROR,
+      L"Theme setting failed. The following error was encountered:\r\n%s\r\nConsider submitting a bug report.",
+      utl::ErrorToString(result).c_str()
+    );
+  }
+
+  // This happens with the default windows theme, no idea why.
+  /*else if(new_count <= old_count && _is_loaded == PatcherState::Yes)
+  {
+    utl::FormattedMessageBox(
+      _hwnd,
+      L"Error",
+      MB_OK | MB_ICONWARNING,
+      L"Theme setting reported success, however bypass count didn't increase. Weird."
+    );
+  }*/
 }
 
 int MainDialog::CurrentSelection()
 {
-  const auto selid = ComboBox_GetCurSel(_hwnd_COMBO_THEMES);
-  const auto name = std::make_unique<TCHAR[]>((size_t)ComboBox_GetLBTextLen(_hwnd_COMBO_THEMES, selid) + 1);
-  ComboBox_GetLBText(_hwnd_COMBO_THEMES, selid, name.get());
-  return isdigit(*name.get()) ? wcstol(name.get(), nullptr, 10) : -1;
-}*/
+  const auto count = ListView_GetSelectedCount(_hwnd_LIST);
+  if (count != 1)
+  {
+    Log(L"CurrentSelection: count is %d, expected 1", count);
+    return -1;
+  }
+
+  LVITEM item{};
+  item.iItem = ListView_GetSelectionMark(_hwnd_LIST);
+  item.mask = LVIF_PARAM;
+  ListView_GetItem(_hwnd_LIST, &item);
+  return (int)item.lParam;
+}
 
 INT_PTR MainDialog::DlgProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -326,14 +476,17 @@ INT_PTR MainDialog::DlgProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
       if (HIWORD(wParam) == BN_CLICKED)
         DestroyWindow(_hwnd);
       return TRUE;
+    case IDC_BUTTON_HELP:
+      MessageBoxW(_hwnd, kHelpText, L"Help", MB_OK);
+      return TRUE;
     /*case IDC_COMBO_THEMES:
       if (HIWORD(wParam) == CBN_SELENDOK)
         SelectTheme(CurrentSelection());
-      return TRUE;
+      return TRUE;*/
     case IDC_BUTTON_APPLY:
       if (HIWORD(wParam) == BN_CLICKED)
         ApplyTheme(CurrentSelection());
-      return TRUE;*/
+      return TRUE;
     }
     break;
 

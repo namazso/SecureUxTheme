@@ -18,5 +18,5 @@
 namespace sig
 {
   HRESULT check_file(LPCWSTR path);
-  HRESULT fix_file(LPCWSTR path, bool allow_relaunch);
+  HRESULT fix_file(LPCWSTR path);
 }

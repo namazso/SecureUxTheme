@@ -41,16 +41,6 @@ extern void dll_loaded(PVOID base, PCWSTR name);
 HINSTANCE g_instance;
 CComPtr<IThemeManager2> g_pThemeManager2;
 
-inline int FormattedMessageBox(HWND hwnd, LPCTSTR caption, UINT type, LPCTSTR fmt, ...)
-{
-  va_list args;
-  va_start(args, fmt);
-  TCHAR text[4096];
-  _vstprintf_s(text, fmt, args);
-  va_end(args);
-  return MessageBox(hwnd, text, caption, type);
-}
-
 static int main_gui(int nCmdShow)
 {
   INITCOMMONCONTROLSEX iccex
@@ -59,7 +49,7 @@ static int main_gui(int nCmdShow)
     ICC_WIN95_CLASSES
   };
 
-#define POST_ERROR(...) FormattedMessageBox(nullptr, _T("Error"), MB_OK | MB_ICONERROR, __VA_ARGS__)
+#define POST_ERROR(...) utl::FormattedMessageBox(nullptr, _T("Error"), MB_OK | MB_ICONERROR, __VA_ARGS__)
 
   if (!InitCommonControlsEx(&iccex))
     return POST_ERROR(L"InitCommonControlsEx failed, LastError = %08X", GetLastError());

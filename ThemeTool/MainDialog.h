@@ -71,6 +71,7 @@ class MainDialog
   void UpdatePatcherStateDisplay();
 
   void SelectTheme(int id);
+
   void ApplyTheme(int id);
   int CurrentSelection();
 

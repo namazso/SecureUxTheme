@@ -305,7 +305,7 @@ std::pair<const void*, size_t> utl::get_dll_blob()
 
 int utl::atom_reference_count(const wchar_t* name)
 {
-  const auto atom = FindAtomW(name);
+  const auto atom = GlobalFindAtomW(name);
   // Yes this can be a TOCTOU but, no I don't care
   if(atom)
   {
@@ -333,6 +333,8 @@ int utl::atom_reference_count(const wchar_t* name)
 
     if (NT_SUCCESS(ret))
       return s.abi.UsageCount;
+    else
+      return -1;
   }
   return 0;
 }
@@ -556,4 +558,25 @@ DWORD utl::get_KnownDllPath(std::wstring& wstr)
     error = RtlNtStatusToDosError(status);
 
   return error;
+}
+
+
+std::wstring utl::ErrorToString(HRESULT error)
+{
+  wchar_t buf[0x1000];
+
+  FormatMessageW(
+    FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+    nullptr,
+    error,
+    MAKELANGID(LANG_USER_DEFAULT, SUBLANG_DEFAULT),
+    buf,
+    (DWORD)std::size(buf),
+    nullptr
+  );
+  std::wstring wstr{ buf };
+  const auto pos = wstr.find_last_not_of(L"\r\n");
+  if (pos != std::wstring::npos)
+    wstr.resize(pos);
+  return wstr;
 }

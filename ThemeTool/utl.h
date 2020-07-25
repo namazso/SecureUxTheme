@@ -32,6 +32,19 @@ namespace utl
 
   std::pair<const void*, size_t> get_dll_blob();
 
+  std::wstring ErrorToString(HRESULT error);
+
+  static int FormattedMessageBox(HWND hwnd, LPCTSTR caption, UINT type, LPCTSTR fmt, ...)
+  {
+    va_list args;
+    va_start(args, fmt);
+    TCHAR text[4096];
+    _vstprintf_s(text, fmt, args);
+    va_end(args);
+    return MessageBox(hwnd, text, caption, type);
+  }
+
+
   static void Fatal(HWND hwnd, const wchar_t* fmt, ...)
   {
     va_list args;
