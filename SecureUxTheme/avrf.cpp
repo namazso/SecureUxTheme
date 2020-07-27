@@ -191,7 +191,7 @@ static hook_target_image s_target_images[] =
   { RTL_CONSTANT_STRING(L"themeservice"),     0b011 },
   { RTL_CONSTANT_STRING(L"uxinit"),           0b011 },
   { RTL_CONSTANT_STRING(L"uxtheme"),          0b011 },
-  { RTL_CONSTANT_STRING(L"logoncontroller"),  0b100 },
+  { RTL_CONSTANT_STRING(L"logoncontroller"),  0b110 },
 };
 
 void* get_original_from_hook_address(void* hook_address)
