@@ -237,6 +237,11 @@ RTL_ATOM add_atom(const wchar_t* name)
 #endif
 }
 
+void increase_count()
+{
+  add_atom(L"SecureUxTheme_CalledInWinlogon");
+}
+
 #define GET_ORIGINAL_FUNC(name) (*get_original_from_hook_address_wrapper(&name ## _Hook))
 
 static VOID NTAPI DllLoadCallback(PWSTR DllName, PVOID DllBase, SIZE_T DllSize, PVOID Reserved);
@@ -360,7 +365,10 @@ void dll_loaded(PVOID base, PCWSTR name)
   DebugPrint("Got notification of %S being loaded at %p\n", name, base);
 
   if (0 == _wcsnicmp(L"winlogon", name, 8))
+  {
     g_is_winlogon = true;
+    increase_count(); // yes, there was no theme applied yet, but "Loaded" is decided from this value
+  }
 
   for (auto& target : s_target_images)
   {
@@ -400,7 +408,7 @@ CryptVerifySignatureW_Hook(
   UNREFERENCED_PARAMETER(dwFlags);
 
   if(g_is_winlogon)
-    add_atom(L"SecureUxTheme_CalledInWinlogon");
+    increase_count();
 
   DebugPrint("Called");
   return TRUE;
