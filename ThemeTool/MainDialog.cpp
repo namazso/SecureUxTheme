@@ -75,10 +75,10 @@ std::wstring GetWindowTextStr(HWND hwnd)
 
 void MainDialog::Log(const wchar_t* fmt, ...)
 {
+  std::wstring str;
   va_list args;
   va_start(args, fmt);
-  wchar_t text[0x1000];
-  vswprintf_s(text, fmt, args);
+  utl::vfmt(str, fmt, args);
   va_end(args);
   auto log = GetWindowTextStr(_hwnd_LOG);
   if(!log.empty())
@@ -87,7 +87,7 @@ void MainDialog::Log(const wchar_t* fmt, ...)
   QueryPerformanceCounter(&li);
   log.append(std::to_wstring(li.QuadPart));
   log.append(L" > ");
-  log.append(text);
+  log.append(str.c_str());
   SetWindowTextW(_hwnd_LOG, log.c_str());
 }
 

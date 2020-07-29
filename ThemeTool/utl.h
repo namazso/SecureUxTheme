@@ -34,14 +34,33 @@ namespace utl
 
   std::wstring ErrorToString(HRESULT error);
 
-  static int FormattedMessageBox(HWND hwnd, LPCTSTR caption, UINT type, LPCTSTR fmt, ...)
+  inline int vfmt(std::wstring& str, const wchar_t* fmt, va_list args)
+  {
+    auto len = _vscwprintf(fmt, args);
+    str.resize(len + 1);
+    len = vswprintf_s(str.data(), str.size() + 1, fmt, args);
+    if(len < 0)
+      str.clear();
+    return len;
+  }
+
+  inline int fmt(std::wstring& str, const wchar_t* fmt, ...)
   {
     va_list args;
     va_start(args, fmt);
-    TCHAR text[4096];
-    _vstprintf_s(text, fmt, args);
+    const auto ret = vfmt(str, fmt, args);
     va_end(args);
-    return MessageBox(hwnd, text, caption, type);
+    return ret;
+  }
+
+  inline int FormattedMessageBox(HWND hwnd, LPCTSTR caption, UINT type, LPCTSTR fmt, ...)
+  {
+    std::wstring str;
+    va_list args;
+    va_start(args, fmt);
+    vfmt(str, fmt, args);
+    va_end(args);
+    return MessageBox(hwnd, str.data(), caption, type);
   }
 
 
