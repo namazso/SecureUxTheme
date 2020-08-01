@@ -21,7 +21,20 @@
 #include "signature.h"
 #include "utl.h"
 
-extern "C" NTSYSAPI void NTAPI RtlGetNtVersionNumbers(PULONG a1, PULONG a2, PULONG a3);
+extern "C" NTSYSAPI VOID NTAPI RtlGetNtVersionNumbers(
+  _Out_opt_ PULONG NtMajorVersion,
+  _Out_opt_ PULONG NtMinorVersion,
+  _Out_opt_ PULONG NtBuildNumber
+);
+
+extern "C" NTSYSAPI NTSTATUS NTAPI RtlAdjustPrivilege(
+  _In_ ULONG Privilege,
+  _In_ BOOLEAN Enable,
+  _In_ BOOLEAN Client,
+  _Out_ PBOOLEAN WasEnabled
+);
+
+#define FLG_APPLICATION_VERIFIER (0x100)
 
 static const wchar_t* PatcherStateText(PatcherState state)
 {
@@ -116,18 +129,301 @@ bool MainDialog::IsInstalledForExecutable(const wchar_t* executable)
     VerifierDlls,
     &VerifierDlls_size
   );
-  Log(L"IsInstalledForExecutable(%s): (%d) GlobalFlag=%08X (%d) VerifierDlls=%s", executable, ret1, GlobalFlag, ret2, VerifierDlls);
-  return GlobalFlag & 0x100 && 0 == _wcsicmp(VerifierDlls, kPatcherDllName);
+  return GlobalFlag & FLG_APPLICATION_VERIFIER && 0 == _wcsicmp(VerifierDlls, kPatcherDllName);
+}
+
+DWORD MainDialog::InstallForExecutable(const wchar_t* executable)
+{
+  const auto subkey = std::wstring{ kIFEO } +executable;
+  DWORD GlobalFlag = 0;
+  DWORD GlobalFlag_size = sizeof(GlobalFlag);
+  // we don't care if it fails
+  RegGetValueW(
+    HKEY_LOCAL_MACHINE,
+    subkey.c_str(),
+    L"GlobalFlag",
+    RRF_RT_REG_DWORD | RRF_ZEROONFAILURE,
+    nullptr,
+    &GlobalFlag,
+    &GlobalFlag_size
+  );
+  GlobalFlag |= FLG_APPLICATION_VERIFIER;
+  auto ret = RegSetKeyValueW(
+    HKEY_LOCAL_MACHINE,
+    subkey.c_str(),
+    L"GlobalFlag",
+    REG_DWORD,
+    &GlobalFlag,
+    sizeof(GlobalFlag)
+  );
+  if(!ret)
+  {
+    ret = RegSetKeyValueW(
+      HKEY_LOCAL_MACHINE,
+      subkey.c_str(),
+      L"VerifierDlls",
+      REG_SZ,
+      kPatcherDllName,
+      sizeof(kPatcherDllName)
+    );
+  }
+  return ret;
+}
+
+DWORD MainDialog::UninstallForExecutable(const wchar_t* executable)
+{
+  const auto subkey = std::wstring{ kIFEO } +executable;
+  DWORD GlobalFlag = 0;
+  DWORD GlobalFlag_size = sizeof(GlobalFlag);
+  // we don't care if it fails
+  RegGetValueW(
+    HKEY_LOCAL_MACHINE,
+    subkey.c_str(),
+    L"GlobalFlag",
+    RRF_RT_REG_DWORD | RRF_ZEROONFAILURE,
+    nullptr,
+    &GlobalFlag,
+    &GlobalFlag_size
+  );
+  GlobalFlag &= ~FLG_APPLICATION_VERIFIER;
+  DWORD ret = ERROR_SUCCESS;
+  if(!GlobalFlag)
+  {
+    ret = RegDeleteKeyValueW(
+      HKEY_LOCAL_MACHINE,
+      subkey.c_str(),
+      L"GlobalFlag"
+    );
+  }
+  else
+  {
+    ret = RegSetKeyValueW(
+      HKEY_LOCAL_MACHINE,
+      subkey.c_str(),
+      L"GlobalFlag",
+      REG_DWORD,
+      &GlobalFlag,
+      sizeof(GlobalFlag)
+    );
+  }
+
+  // query it again, so we don't delete the other key if we failed removing the flag somehow, that would login loop
+  GlobalFlag_size = sizeof(GlobalFlag);
+  RegGetValueW(
+    HKEY_LOCAL_MACHINE,
+    subkey.c_str(),
+    L"GlobalFlag",
+    RRF_RT_REG_DWORD | RRF_ZEROONFAILURE,
+    nullptr,
+    &GlobalFlag,
+    &GlobalFlag_size
+  );
+  if(!(GlobalFlag & FLG_APPLICATION_VERIFIER))
+  {
+    // FLG_APPLICATION_VERIFIER is not set, we don't care how we got here, nor if we succeed deleting VerifierDlls
+    ret = ERROR_SUCCESS;
+
+    RegDeleteKeyValueW(
+      HKEY_LOCAL_MACHINE,
+      subkey.c_str(),
+      L"VerifierDlls"
+    );
+  }
+
+  return ret;
+}
+
+DWORD MainDialog::UninstallInternal()
+{
+  Log(L"Uninstall started...");
+
+  static const wchar_t* remove_from[] = {
+    L"winlogon.exe",
+    L"explorer.exe",
+    L"SystemSettings.exe",
+    L"dwm.exe",
+    L"LogonUI.exe"
+  };
+
+  DWORD ret = ERROR_SUCCESS;
+  auto failed = false;
+
+  for (const auto executable : remove_from)
+  {
+    ret = UninstallForExecutable(executable);
+    Log(L"UninstallForExecutable(\"%s\") returned %08X", executable, ret);
+    failed = ret != 0;
+    if (failed)
+      break;
+  }
+
+  if (failed)
+  {
+    utl::FormattedMessageBox(
+      _hwnd,
+      L"Error",
+      MB_OK | MB_ICONERROR,
+      L"Uninstalling failed, see log for more info. Error: %s",
+      utl::ErrorToString(ret).c_str()
+    );
+    return ret;
+  }
+
+  const auto dll_path = GetPatcherDllPath();
+  ret = utl::nuke_file(dll_path);
+  Log(L"utl::nuke_file returned: %08X", ret);
+  if (ret)
+  {
+    utl::FormattedMessageBox(
+      _hwnd,
+      L"Warning",
+      MB_OK | MB_ICONWARNING,
+      L"Uninstalling succeeded, but the file couldn't be removed. This may cause problems on reinstall. Error: %s",
+      utl::ErrorToString(ret).c_str()
+    );
+  }
+  return ret;
+}
+
+void MainDialog::Uninstall()
+{
+  {
+    utl::unique_redirection_disabler disabler{};
+
+    // TODO: warn user if current theme not signed
+
+    UninstallInternal();
+  }
+
+  UpdatePatcherState();
+}
+
+void MainDialog::Install()
+{
+  utl::unique_redirection_disabler disabler{};
+
+  auto ret = UninstallInternal();
+
+  if(ret)
+  {
+    utl::FormattedMessageBox(
+      _hwnd,
+      L"Error",
+      MB_OK | MB_ICONERROR,
+      L"Installation cannot continue because uninstalling failed"
+    );
+    return;
+  }
+
+  Log(L"Install started...");
+
+  const auto dll_path = GetPatcherDllPath();
+  const auto blob = utl::get_dll_blob();
+  ret = utl::write_file(dll_path, blob.first, blob.second);
+  Log(L"utl::write_file returned %08X", ret);
+  if(ret)
+  {
+    utl::FormattedMessageBox(
+      _hwnd,
+      L"Error",
+      MB_OK | MB_ICONERROR,
+      L"Installing patcher DLL failed. Error: %s",
+      utl::ErrorToString(ret)
+    );
+    return;
+  }
+
+  ret = InstallForExecutable(L"winlogon.exe");
+  Log(L"InstallForExecutable(\"%s\") returned %08X", ret);
+  if(ret)
+  {
+    utl::FormattedMessageBox(
+      _hwnd,
+      L"Error",
+      MB_OK | MB_ICONERROR,
+      L"Installing main hook failed. Error: %s",
+      utl::ErrorToString(ret).c_str()
+    );
+    UninstallInternal();
+    return;
+  }
+
+  static constexpr std::pair<HWND MainDialog::*, const wchar_t*> checks[]
+  {
+    { &MainDialog::_hwnd_CHECK_EXPLORER,       L"explorer.exe"       },
+    { &MainDialog::_hwnd_CHECK_LOGONUI,        L"LogonUI.exe"        },
+    { &MainDialog::_hwnd_CHECK_SYSTEMSETTINGS, L"SystemSettings.exe" },
+  };
+
+  for(const auto& check : checks)
+  {
+    if (BST_CHECKED != Button_GetCheck(this->*check.first))
+      continue;
+
+    const auto ret = InstallForExecutable(check.second);
+    Log(L"InstallForExecutable(\"%s\") returned %08X", ret);
+    if(ret)
+    {
+      utl::FormattedMessageBox(
+        _hwnd,
+        L"Warning",
+        MB_OK | MB_ICONWARNING,
+        L"Installing for \"%s\" failed. Error: %s",
+        check.second,
+        utl::ErrorToString(ret).c_str()
+      );
+    }
+  }
+
+  const auto reboot = IDYES == utl::FormattedMessageBox(
+    _hwnd,
+    L"Success",
+    MB_YESNO,
+    L"Installing succeeded, patcher will be loaded next boot. Do you want to reboot now or later?"
+  );
+
+  if(reboot)
+  {
+    BOOLEAN old = FALSE;
+    const auto status = RtlAdjustPrivilege(19, TRUE, FALSE, &old);
+    Log(L"RtlAdjustPrivilege returned %08X", status);
+    if(!NT_SUCCESS(status))
+    {
+      utl::FormattedMessageBox(
+        _hwnd,
+        L"Error",
+        MB_OK | MB_ICONERROR,
+        L"Adjusting shutdown privilege failed. Error: %s",
+        utl::ErrorToString(RtlNtStatusToDosError(status)).c_str()
+      );
+      return;
+    }
+
+    const auto succeeded = ExitWindowsEx(EWX_REBOOT, 0);
+    if(!succeeded)
+    {
+      ret = GetLastError();
+      Log(L"ExitWindowsEx failed with GetLastError() = %08X", ret);
+      utl::FormattedMessageBox(
+        _hwnd,
+        L"Error",
+        MB_OK | MB_ICONERROR,
+        L"Rebooting failed. Error: %s",
+        utl::ErrorToString(ret).c_str()
+      );
+    }
+  }
 }
 
 void MainDialog::UpdatePatcherState()
 {
   utl::unique_redirection_disabler d{};
-  std::wstring dll_path = GetPatcherDllPath();
+  const auto dll_path = GetPatcherDllPath();
   const auto dll_expected_content = utl::get_dll_blob();
   bool file_has_content;
   bool file_is_same;
   DWORD file_error;
+
   {
     std::vector<char> content;
     file_error = utl::read_file(dll_path, content);
@@ -136,6 +432,7 @@ void MainDialog::UpdatePatcherState()
     const auto end = begin + dll_expected_content.second;
     file_is_same = std::equal(content.begin(), content.end(), begin, end);
   }
+
   const auto reg_winlogon = IsInstalledForExecutable(L"winlogon.exe");
   const auto reg_explorer = IsInstalledForExecutable(L"explorer.exe");
   const auto reg_systemsettings = IsInstalledForExecutable(L"SystemSettings.exe");
@@ -477,7 +774,16 @@ INT_PTR MainDialog::DlgProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
         DestroyWindow(_hwnd);
       return TRUE;
     case IDC_BUTTON_HELP:
-      MessageBoxW(_hwnd, kHelpText, L"Help", MB_OK);
+      if (HIWORD(wParam) == BN_CLICKED)
+        MessageBoxW(_hwnd, kHelpText, L"Help", MB_OK);
+      return TRUE;
+    case IDC_BUTTON_INSTALL:
+      if (HIWORD(wParam) == BN_CLICKED)
+        Install();
+      return TRUE;
+    case IDC_BUTTON_UNINSTALL:
+      if (HIWORD(wParam) == BN_CLICKED)
+        Uninstall();
       return TRUE;
     /*case IDC_COMBO_THEMES:
       if (HIWORD(wParam) == CBN_SELENDOK)

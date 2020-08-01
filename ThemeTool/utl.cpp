@@ -448,12 +448,12 @@ DWORD utl::read_file(std::wstring_view path, std::vector<char>& content)
     {
       if(li.QuadPart <= 128 << 20) // max 128 MB for this api
       {
-        content.resize(li.QuadPart);
+        content.resize((size_t)li.QuadPart);
         DWORD read = 0;
         const auto succeeded = ReadFile(
           file,
           content.data(),
-          li.QuadPart,
+          (size_t)li.QuadPart,
           &read,
           nullptr
         );
@@ -512,6 +512,10 @@ DWORD utl::write_file(std::wstring_view path, const void* data, size_t size)
 DWORD utl::nuke_file(std::wstring_view path)
 {
   if (DeleteFileW(path.data()))
+    return NO_ERROR;
+
+  // if the file doesn't exist just pretend we succeeded
+  if (GetLastError() == ERROR_FILE_NOT_FOUND)
     return NO_ERROR;
 
   std::wstring wstr{path.data(), path.size()};
