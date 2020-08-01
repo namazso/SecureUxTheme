@@ -334,7 +334,7 @@ void MainDialog::Install()
   }
 
   ret = InstallForExecutable(L"winlogon.exe");
-  Log(L"InstallForExecutable(\"%s\") returned %08X", ret);
+  Log(L"InstallForExecutable(\"winlogon.exe\") returned %08X", ret);
   if(ret)
   {
     utl::FormattedMessageBox(
@@ -361,7 +361,7 @@ void MainDialog::Install()
       continue;
 
     const auto ret = InstallForExecutable(check.second);
-    Log(L"InstallForExecutable(\"%s\") returned %08X", ret);
+    Log(L"InstallForExecutable(\"%s\") returned %08X", check.second, ret);
     if(ret)
     {
       utl::FormattedMessageBox(
