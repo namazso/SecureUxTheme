@@ -379,7 +379,7 @@ void MainDialog::Install()
     _hwnd,
     L"Success",
     MB_YESNO,
-    L"Installing succeeded, patcher will be loaded next boot. Do you want to reboot now or later?"
+    L"Installing succeeded, patcher will be loaded next boot. Do you want to reboot now?"
   );
 
   if(reboot)
