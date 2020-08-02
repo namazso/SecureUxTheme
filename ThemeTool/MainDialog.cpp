@@ -68,9 +68,17 @@ static std::wstring GetPatcherDllPath()
   return path;
 }
 
-static int WinlogonBypassCount()
+static bool IsLoadedInSession()
 {
-  return utl::atom_reference_count(L"SecureUxTheme_CalledInWinlogon");
+  const auto h = OpenEventW(
+    SYNCHRONIZE,
+    FALSE,
+    L"SecureUxTheme_Loaded"
+  );
+  if (!h)
+    return false;
+  CloseHandle(h);
+  return true;
 }
 
 std::wstring GetWindowTextStr(HWND hwnd)
@@ -437,17 +445,17 @@ void MainDialog::UpdatePatcherState()
   const auto reg_explorer = IsInstalledForExecutable(L"explorer.exe");
   const auto reg_systemsettings = IsInstalledForExecutable(L"SystemSettings.exe");
   const auto reg_logonui = IsInstalledForExecutable(L"LogonUI.exe");
-  const auto bypass_count = WinlogonBypassCount();
+  const auto is_loaded = IsLoadedInSession();
   Log(
-    L"UpdatePatcherState: file_has_content %d file_is_same %d file_error %d bypass_count %d",
-    file_has_content, file_is_same, file_error, bypass_count
+    L"UpdatePatcherState: file_has_content %d file_is_same %d file_error %d is_loaded %d",
+    file_has_content, file_is_same, file_error, (int)is_loaded
   );
   _is_installed =
     (file_has_content && reg_winlogon)
     ? (file_is_same ? PatcherState::Yes : PatcherState::Outdated)
     : PatcherState::No;
   _is_loaded =
-    bypass_count > 0
+    is_loaded
     ? PatcherState::Yes
     : (_is_installed == PatcherState::Outdated ? PatcherState::Probably : PatcherState::No);
   _is_logonui = reg_logonui ? PatcherState::Yes : PatcherState::No;
@@ -697,8 +705,6 @@ Are you sure you want to continue?)"
 
 #undef CHECK_FLAG
 
-  const auto old_count = WinlogonBypassCount();
-
   HRESULT result;
 
   {
@@ -713,9 +719,7 @@ Are you sure you want to continue?)"
     );
   }
 
-  const auto new_count = WinlogonBypassCount();
-
-  Log(L"ApplyTheme: SetCurrentTheme returned %08X atom: %d -> %d", result, old_count, new_count);
+  Log(L"ApplyTheme: SetCurrentTheme returned %08X", result);
 
   if(FAILED(result))
   {
@@ -727,17 +731,6 @@ Are you sure you want to continue?)"
       utl::ErrorToString(result).c_str()
     );
   }
-
-  // This happens with the default windows theme, no idea why.
-  /*else if(new_count <= old_count && _is_loaded == PatcherState::Yes)
-  {
-    utl::FormattedMessageBox(
-      _hwnd,
-      L"Error",
-      MB_OK | MB_ICONWARNING,
-      L"Theme setting reported success, however bypass count didn't increase. Weird."
-    );
-  }*/
 }
 
 int MainDialog::CurrentSelection()

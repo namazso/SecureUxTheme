@@ -18,7 +18,6 @@
 namespace utl
 {
   std::pair<const void*, size_t> get_resource(WORD type, WORD id);
-  int atom_reference_count(const wchar_t* name);
   bool is_elevated();
 
   const std::pair<std::wstring, std::wstring> session_user();

@@ -19,33 +19,6 @@
 
 EXTERN_C_START
 
-typedef USHORT RTL_ATOM, *PRTL_ATOM;
-
-typedef enum _ATOM_INFORMATION_CLASS
-{
-  AtomBasicInformation,
-  AtomTableInformation
-} ATOM_INFORMATION_CLASS;
-
-typedef struct _ATOM_BASIC_INFORMATION
-{
-  USHORT UsageCount;
-  USHORT Flags;
-  USHORT NameLength;
-  WCHAR Name[1];
-} ATOM_BASIC_INFORMATION, *PATOM_BASIC_INFORMATION;
-
-NTSYSAPI
-NTSTATUS
-NTAPI
-NtQueryInformationAtom(
-  _In_      RTL_ATOM Atom,
-  _In_      ATOM_INFORMATION_CLASS AtomInformationClass,
-  _Out_writes_bytes_(AtomInformationLength) PVOID AtomInformation,
-  _In_      ULONG AtomInformationLength,
-  _Out_opt_ PULONG ReturnLength
-);
-
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -301,42 +274,6 @@ std::pair<const void*, size_t> utl::get_dll_blob()
 {
   const auto id = get_needed_dll_resource_id();
   return id ? get_resource(256, id) : std::pair<const void*, size_t>{ nullptr, 0 };
-}
-
-int utl::atom_reference_count(const wchar_t* name)
-{
-  const auto atom = GlobalFindAtomW(name);
-  // Yes this can be a TOCTOU but, no I don't care
-  if(atom)
-  {
-    struct data_s
-    {
-      ATOM_BASIC_INFORMATION abi;
-      wchar_t w[255]; // maximum 256 long
-    } s{};
-    static_assert(offsetof(data_s, abi) == 0, "this is not good");
-
-    ULONG retlen = 0;
-
-    // Atom tables APIs in Windows are designed really dumb. You have GlobalFindAtom to tell if a certain atom exists,
-    // and you could count the references by calling GlobalDeleteAtom on it until it can't be found anymore. This makes
-    // it obvious that atom reference counts aren't secret information. You might wonder: Why is there no way to just
-    // ask the reference count of an atom then? I want to ask the same from Microsoft too. So here we're going to use
-    // the undocumented api called NtQueryInformationAtom to extract this information. Thanks, Microsoft.
-    const auto ret = NtQueryInformationAtom(
-      atom,
-      AtomBasicInformation,
-      &s,
-      sizeof(s),
-      &retlen
-    );
-
-    if (NT_SUCCESS(ret))
-      return s.abi.UsageCount;
-    else
-      return -1;
-  }
-  return 0;
 }
 
 bool utl::is_elevated()
