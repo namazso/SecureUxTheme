@@ -22,6 +22,10 @@
 #define NOMINMAX
 #endif
 
+#ifndef _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
 #include <ntstatus.h>
 #define WIN32_NO_STATUS
 #include <windows.h>
@@ -105,16 +109,47 @@ NtProtectVirtualMemory(
   _Out_   PULONG  OldProtect
 );
 
-typedef USHORT RTL_ATOM, *PRTL_ATOM;
-#define RTL_ATOM_INVALID_ATOM (RTL_ATOM)0x0000
+typedef enum _EVENT_TYPE
+{
+  NotificationEvent,
+  SynchronizationEvent
+} EVENT_TYPE;
 
 NTSYSAPI
 NTSTATUS
 NTAPI
-NtAddAtom(
-  _In_reads_bytes_opt_(Length)  PWSTR AtomName,
-  _In_                          ULONG Length,
-  _Out_opt_                     PRTL_ATOM Atom
+NtCreateEvent(
+  _Out_     PHANDLE EventHandle,
+  _In_      ACCESS_MASK DesiredAccess,
+  _In_opt_  POBJECT_ATTRIBUTES ObjectAttributes,
+  _In_      EVENT_TYPE EventType,
+  _In_      BOOLEAN InitialState
+);
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlGetTokenNamedObjectPath(
+  _In_      HANDLE Token,
+  _In_opt_  PSID Sid,
+  _Out_     PUNICODE_STRING ObjectPath
+);
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+NtOpenProcessToken(
+  _In_  HANDLE ProcessHandle,
+  _In_  ACCESS_MASK DesiredAccess,
+  _Out_ PHANDLE TokenHandle
+);
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlAppendUnicodeToString(
+  _In_      PUNICODE_STRING Destination,
+  _In_opt_  PCWSTR Source
 );
 
 typedef PVOID(NTAPI *PDELAYLOAD_FAILURE_SYSTEM_ROUTINE)(
@@ -208,8 +243,6 @@ static hook_target_image s_target_images[] =
 
 void* get_original_from_hook_address(void* hook_address)
 {
-  const hook_entry temp_entry{ {}, nullptr, hook_address };
-
   const auto it = std::find_if(std::begin(s_hooks), std::end(s_hooks), [hook_address](const hook_entry& e)
   {
     return e.new_address == hook_address;
@@ -224,22 +257,61 @@ T* get_original_from_hook_address_wrapper(T* fn)
   return (T*)get_original_from_hook_address((void*)fn);
 }
 
-bool g_is_winlogon = false;
-
-RTL_ATOM add_atom(const wchar_t* name)
+void signal_loaded()
 {
-#ifndef NO_ATOMS
-  auto atom = RTL_ATOM_INVALID_ATOM;
-  const auto result = NtAddAtom((PWSTR)name, wcslen(name) * sizeof(wchar_t), &atom);
-  return NT_SUCCESS(result) ? atom : RTL_ATOM_INVALID_ATOM;
-#else
-  return RTL_ATOM_INVALID_ATOM;
-#endif
-}
+  // FUCK ATOMS BTW
 
-void increase_count()
-{
-  add_atom(L"SecureUxTheme_CalledInWinlogon");
+  constexpr wchar_t k_event_name[] = L"\\SecureUxTheme_Loaded";
+
+  // Why 1536? Because we must stay below 4096 bytes of stack usage, else the compiler inserts _stkchk
+  wchar_t name_data[1536];
+
+  HANDLE token = nullptr;
+  auto status = NtOpenProcessToken(NtCurrentProcess(), TOKEN_QUERY, &token);
+  if (!NT_SUCCESS(status))
+    return; // whatever
+
+  UNICODE_STRING named_objects{};
+  
+  // Let's call this totally undocumented function with no example code available anywhere, to get our session's BNO
+  // hopefully kernel shit is set up already for this, since we're running before our own process is considered alive.
+  status = RtlGetTokenNamedObjectPath(token, nullptr, &named_objects);
+  if (!NT_SUCCESS(status))
+    return;
+
+  if (named_objects.Length > (sizeof(name_data) - sizeof(k_event_name)))
+  {
+    RtlFreeUnicodeString(&named_objects);
+    return;
+  }
+
+  memcpy(name_data, named_objects.Buffer, named_objects.Length);
+  name_data[named_objects.Length / sizeof(wchar_t)] = 0;
+  RtlFreeUnicodeString(&named_objects);
+
+  wcscat(name_data, k_event_name);
+
+  UNICODE_STRING name;
+  RtlInitUnicodeString(&name, name_data);
+
+  OBJECT_ATTRIBUTES attr;
+  InitializeObjectAttributes(
+    &attr,
+    &name,
+    0,
+    nullptr,
+    nullptr
+  );
+  HANDLE event_handle = nullptr;
+  NtCreateEvent(
+    &event_handle,
+    EVENT_ALL_ACCESS,
+    &attr,
+    NotificationEvent,
+    FALSE
+  );
+
+  // We leak the handle. It's not like we can be loaded twice, and if we die the session is dead anyways
 }
 
 #define GET_ORIGINAL_FUNC(name) (*get_original_from_hook_address_wrapper(&name ## _Hook))
@@ -365,10 +437,7 @@ void dll_loaded(PVOID base, PCWSTR name)
   DebugPrint("Got notification of %S being loaded at %p\n", name, base);
 
   if (0 == _wcsnicmp(L"winlogon", name, 8))
-  {
-    g_is_winlogon = true;
-    increase_count(); // yes, there was no theme applied yet, but "Loaded" is decided from this value
-  }
+    signal_loaded();
 
   for (auto& target : s_target_images)
   {
@@ -406,9 +475,6 @@ CryptVerifySignatureW_Hook(
   UNREFERENCED_PARAMETER(hPubKey);
   UNREFERENCED_PARAMETER(szDescription);
   UNREFERENCED_PARAMETER(dwFlags);
-
-  if(g_is_winlogon)
-    increase_count();
 
   DebugPrint("Called");
   return TRUE;
