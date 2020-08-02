@@ -261,7 +261,7 @@ void signal_loaded()
 {
   // FUCK ATOMS BTW
 
-  constexpr wchar_t k_event_name[] = L"\\SecureUxTheme_Loaded";
+  constexpr static wchar_t k_event_name[] = L"\\SecureUxTheme_Loaded";
 
   // Why 1536? Because we must stay below 4096 bytes of stack usage, else the compiler inserts _stkchk
   wchar_t name_data[1536];
