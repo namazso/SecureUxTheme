@@ -110,14 +110,17 @@ A: Always follow the installer - reboot after each Install / Uninstall, do reins
 
 ### Requirements
 
-* Visual Studio 2017 (newer ones not tested)
-* [Nullsoft Scriptable Install System](https://nsis.sourceforge.io/)
-* [NSIS HandleFileDragDrop plug-in](https://nsis.sourceforge.io/HandleFileDragDrop_plug-in)
+* Visual Studio 2019
 
 ### Compiling
 
-1. Open SecureUxTheme.sln and click __Build Solution__ on x64/Release and Win32/Release settings
-2. Use NSIS to compile installer.nsi to get the installer
+Note that the order of the builds is important, building ThemeTool will fail if some architecture is missing SecureUxTheme build.
+
+1. Open SecureUxTheme.sln
+2. Build SecureUxTheme as Release/Win32
+3. Build SecureUxTheme as Release/ARM64
+4. Build SecureUxTheme as Release/x64
+5. Build ThemeTool as Release/Win32
 
 ## License Statement
 
