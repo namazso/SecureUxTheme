@@ -122,6 +122,10 @@ Note that the order of the builds is important, building ThemeTool will fail if 
 4. Build SecureUxTheme as Release/x64
 5. Build ThemeTool as Release/Win32
 
+### Debugging
+
+lmao
+
 ## License Statement
 
 	SecureUxTheme - A secure boot compatible in-memory UxTheme patcher
