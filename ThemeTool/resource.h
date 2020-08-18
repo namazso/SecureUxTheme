@@ -15,6 +15,8 @@
 #define IDC_STATIC_STYLE                1010
 #define IDC_BUTTON_APPLY                1012
 #define IDC_LIST                        1013
+#define IDC_BUTTON_APPLY2               1014
+#define IDC_BUTTON_PATCH                1014
 #define IDC_BUTTON_INSTALL              1017
 #define IDC_BUTTON_UNINSTALL            1018
 #define IDC_CHECK_EXPLORER              1019

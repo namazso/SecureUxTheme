@@ -540,10 +540,19 @@ MainDialog::MainDialog(HWND hDlg, void*)
 
   Static_SetText(_hwnd_STATIC_ASADMIN, PatcherStateText(_is_elevated ? PatcherState::Yes : PatcherState::No));
 
+  Button_SetCheck(_hwnd_CHECK_COLORS, BST_CHECKED);
+
+  Button_Enable(_hwnd_BUTTON_PATCH, FALSE);
+  Button_Enable(_hwnd_BUTTON_APPLY, FALSE);
+
   if(!_is_elevated)
   {
     Button_Enable(_hwnd_BUTTON_INSTALL, FALSE);
     Button_Enable(_hwnd_BUTTON_UNINSTALL, FALSE);
+    Button_Enable(_hwnd_CHECK_COLORS, FALSE);
+    Button_Enable(_hwnd_CHECK_EXPLORER, FALSE);
+    Button_Enable(_hwnd_CHECK_LOGONUI, FALSE);
+    Button_Enable(_hwnd_CHECK_SYSTEMSETTINGS, FALSE);
   }
 
   ListView_SetExtendedListViewStyle(_hwnd_LIST, LVS_EX_AUTOSIZECOLUMNS | LVS_EX_FULLROWSELECT);
@@ -595,7 +604,7 @@ MainDialog::MainDialog(HWND hDlg, void*)
   UpdatePatcherState();
 }
 
-/*void MainDialog::SelectTheme(int id)
+void MainDialog::SelectTheme(int id)
 {
   if (id == -1)
   {
@@ -603,26 +612,77 @@ MainDialog::MainDialog(HWND hDlg, void*)
     return;
   }
 
-  ITheme* pTheme = nullptr;
-  g_pThemeManager2->GetTheme(id, &pTheme);
-
-  const auto style = pTheme->GetVisualStyle();
-
-  Static_SetText(_hwnd_STATIC_STYLE, style);
-
-  if(wcslen(style) > 1 && sig::check_file(style) == E_FAIL)
+  CComPtr<ITheme> pTheme = nullptr;
+  auto result = g_pThemeManager2->GetTheme(id, &pTheme);
+  if (FAILED(result))
   {
-    Static_SetText(_hwnd_STATIC_NEEDS_PATCH, _T("Style needs patching"));
+    Static_SetText(_hwnd_STATIC_STYLE, _T(""));
+    Log(L"SelectTheme: g_pThemeManager2->GetTheme failed with %08X", result);
+    return;
+  }
+
+  std::wstring style;
+  result = pTheme->GetVisualStyle(style);
+  if (FAILED(result))
+  {
+    Static_SetText(_hwnd_STATIC_STYLE, _T(""));
+    Log(L"SelectTheme: pTheme->GetVisualStyle failed with %08X", result);
+    return;
+  }
+
+  Static_SetText(_hwnd_STATIC_STYLE, style.c_str());
+
+  Button_Enable(_hwnd_BUTTON_APPLY, TRUE);
+  if(!style.empty() && sig::check_file(style.c_str()) == E_FAIL)
+  {
+    Static_SetText(_hwnd_STATIC_NEEDS_PATCHING, _T("Style needs patching"));
     Button_SetText(_hwnd_BUTTON_APPLY, _T("Patch and apply"));
+    Button_Enable(_hwnd_BUTTON_PATCH, TRUE);
   }
   else
   {
-    Static_SetText(_hwnd_STATIC_NEEDS_PATCH, _T(""));
+    Static_SetText(_hwnd_STATIC_NEEDS_PATCHING, _T(""));
     Button_SetText(_hwnd_BUTTON_APPLY, _T("Apply"));
+    Button_Enable(_hwnd_BUTTON_PATCH, FALSE);
+  }
+}
+
+HRESULT MainDialog::PatchThemeInternal(int id)
+{
+  Log(L"PatchThemeInternal(%d)", id);
+
+  bool patched = true;
+  std::wstring style;
+
+  {
+    CComPtr<ITheme> pTheme = nullptr;
+    auto result = g_pThemeManager2->GetTheme(id, &pTheme);
+    if (SUCCEEDED(result))
+    {
+      result = pTheme->GetVisualStyle(style);
+      if (SUCCEEDED(result))
+      {
+        if (!style.empty() && sig::check_file(style.c_str()) == E_FAIL)
+          patched = false;
+      }
+      else
+      {
+        Log(L"pTheme->GetVisualStyle failed with %08X", result);
+      }
+    }
+    else
+    {
+      Log(L"g_pThemeManager2->GetTheme(%d) failed with %08X", id, result);
+      return result;
+    }
   }
 
-  pTheme->Release();
-}*/
+  HRESULT fix_result = NOERROR;
+  if (!patched)
+    fix_result = sig::fix_file(style.c_str());
+
+  return fix_result;
+}
 
 void MainDialog::ApplyTheme(int id)
 {
@@ -650,44 +710,11 @@ Are you sure you want to continue?)",
       return;
   }
 
-  bool patched = true;
-  std::wstring style;
-
-  {
-    CComPtr<ITheme> pTheme = nullptr;
-    auto result = g_pThemeManager2->GetTheme(id, &pTheme);
-    if(SUCCEEDED(result))
-    {
-      result = pTheme->GetVisualStyle(style);
-      if (SUCCEEDED(result))
-      {
-        if (!style.empty() && sig::check_file(style.c_str()) == E_FAIL)
-          patched = false;
-      }
-      else
-      {
-        Log(L"pTheme->GetVisualStyle failed with %08X", result);
-      }
-    }
-    else
-    {
-      Log(L"g_pThemeManager2->GetTheme(%d) failed with %08X", id, result);
-      return;
-    }
-  }
-
-  Log(L"Style path is %s", style.c_str());
-
   if(_is_installed != PatcherState::No)
   {
-    HRESULT fix_result = NOERROR;
-    if (!patched)
-    {
-      fix_result = sig::fix_file(style.c_str());
-      patched = SUCCEEDED(fix_result);
-    }
+    const auto fix_result = PatchThemeInternal(id);
 
-    if(!patched)
+    if(!SUCCEEDED(fix_result))
     {
       Log(L"sig::fix_file failed: %08X", fix_result);
       const auto answer = utl::FormattedMessageBox(
@@ -725,20 +752,17 @@ Do you still want to continue?)"
   }
   else
   {
-    if(!patched)
-    {
-      const auto answer = utl::FormattedMessageBox(
-        _hwnd,
-        L"Warning",
-        MB_YESNO | MB_ICONWARNING,
-        LR"(You seem not to be using SecureUxTheme, and trying to apply an unsigned theme.
-This won't work unless another patcher is installed.
+    const auto answer = utl::FormattedMessageBox(
+      _hwnd,
+      L"Warning",
+      MB_YESNO | MB_ICONWARNING,
+      LR"(You seem not to be using SecureUxTheme, and trying to apply a theme.
+This won't work unless another patcher is installed or the theme is signed.
 Are you sure you want to continue?)"
-      );
+);
 
-      if (answer == IDNO)
-        return;
-    }
+    if (answer == IDNO)
+      return;
   }
 
   auto apply_flags = 0;
@@ -777,6 +801,28 @@ Are you sure you want to continue?)"
       MB_OK | MB_ICONERROR,
       L"Theme setting failed. The following error was encountered:\r\n%s\r\nConsider submitting a bug report.",
       utl::ErrorToString(result).c_str()
+    );
+  }
+}
+
+void MainDialog::PatchTheme(int id)
+{
+  Log(L"PatchTheme(%d)", id);
+
+  if (id == -1)
+    return; // invalid selection... whatever..
+
+  const auto result = PatchThemeInternal(id);
+
+  if (FAILED(result))
+  {
+    utl::FormattedMessageBox(
+      _hwnd,
+      L"Error",
+      MB_OK | MB_ICONERROR,
+      L"Patching theme failed. The following error was encountered:\r\n%s\r\n%s",
+      utl::ErrorToString(result).c_str(),
+      _is_elevated ? L"Consider sending a bug report" : L"Try running the program as Administrator"
     );
   }
 }
@@ -826,16 +872,27 @@ INT_PTR MainDialog::DlgProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
       if (HIWORD(wParam) == BN_CLICKED)
         Uninstall();
       return TRUE;
-    /*case IDC_COMBO_THEMES:
-      if (HIWORD(wParam) == CBN_SELENDOK)
-        SelectTheme(CurrentSelection());
-      return TRUE;*/
     case IDC_BUTTON_APPLY:
       if (HIWORD(wParam) == BN_CLICKED)
         ApplyTheme(CurrentSelection());
       return TRUE;
+    case IDC_BUTTON_PATCH:
+      if (HIWORD(wParam) == BN_CLICKED)
+        PatchTheme(CurrentSelection());
+      return TRUE;
     }
     break;
+
+  case WM_NOTIFY:
+    {
+    const auto nmhdr = (LPNMHDR)lParam;
+    if (nmhdr->idFrom == IDC_LIST && nmhdr->code == NM_CLICK)
+    {
+      SelectTheme(CurrentSelection());
+      return TRUE;
+    }
+    }
+    return FALSE;
 
   case WM_CLOSE:
     DestroyWindow(_hwnd);

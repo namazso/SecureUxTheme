@@ -30,6 +30,7 @@ class MainDialog
   HWND _hwnd;
 
   MAKE_IDC_MEMBER(_hwnd, BUTTON_APPLY);
+  MAKE_IDC_MEMBER(_hwnd, BUTTON_PATCH);
   MAKE_IDC_MEMBER(_hwnd, BUTTON_HELP);
   MAKE_IDC_MEMBER(_hwnd, BUTTON_INSTALL);
   MAKE_IDC_MEMBER(_hwnd, BUTTON_UNINSTALL);
@@ -77,9 +78,10 @@ class MainDialog
   void UpdatePatcherState();
   void UpdatePatcherStateDisplay();
 
+  HRESULT PatchThemeInternal(int id);
   void SelectTheme(int id);
-
   void ApplyTheme(int id);
+  void PatchTheme(int id);
   int CurrentSelection();
 
 public:
