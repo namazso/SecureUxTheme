@@ -17,9 +17,13 @@
 
 #include "MainDialog.h"
 
+#include <chrono>
+
 #include "main.h"
 #include "signature.h"
 #include "utl.h"
+
+// using undocumented stuff is bad
 
 extern "C" NTSYSAPI VOID NTAPI RtlGetNtVersionNumbers(
   _Out_opt_ PULONG NtMajorVersion,
@@ -104,11 +108,15 @@ void MainDialog::Log(const wchar_t* fmt, ...)
   auto log = GetWindowTextStr(_hwnd_LOG);
   if(!log.empty())
     log.append(L"\r\n");
-  LARGE_INTEGER li{};
-  QueryPerformanceCounter(&li);
-  log.append(std::to_wstring(li.QuadPart));
+  //LARGE_INTEGER li{};
+  //QueryPerformanceCounter(&li);
+  
+  const auto ms = std::chrono::duration_cast<std::chrono::milliseconds >(
+  std::chrono::system_clock::now().time_since_epoch()
+    ).count();
+  log.append(std::to_wstring(ms));
   log.append(L" > ");
-  log.append(str.c_str());
+  log.append(str);
   SetWindowTextW(_hwnd_LOG, log.c_str());
 }
 
