@@ -94,7 +94,7 @@ static HRESULT WriteSignature(
   signature_header.SignatureOffset = k_signature_size;
   signature_header.FileSize = file_size.QuadPart + sizeof(THEME_SIGNATURE_HEADER);
 
-  DWORD bytes_written;
+  DWORD bytes_written{};
   const auto succeeded = WriteFile(
     file,
     &signature_header,
