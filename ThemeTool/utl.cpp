@@ -46,36 +46,6 @@ NtQuerySymbolicLinkObject(
   _Out_opt_ PULONG ReturnedLength
 );
 
-/*NTSYSAPI
-NTSTATUS
-NTAPI
-NtReadFile(
-  _In_      HANDLE FileHandle,
-  _In_opt_  HANDLE Event,
-  _In_opt_  PIO_APC_ROUTINE ApcRoutine,
-  _In_opt_  PVOID ApcContext,
-  _Out_     PIO_STATUS_BLOCK IoStatusBlock,
-  _Out_writes_bytes_(Length) PVOID Buffer,
-  _In_      ULONG Length,
-  _In_opt_  PLARGE_INTEGER ByteOffset,
-  _In_opt_  PULONG Key
-);
-
-NTSYSAPI
-NTSTATUS
-NTAPI
-NtWriteFile(
-  _In_      HANDLE FileHandle,
-  _In_opt_  HANDLE Event,
-  _In_opt_  PIO_APC_ROUTINE ApcRoutine,
-  _In_opt_  PVOID ApcContext,
-  _Out_     PIO_STATUS_BLOCK IoStatusBlock,
-  _In_reads_bytes_(Length) PVOID Buffer,
-  _In_      ULONG Length,
-  _In_opt_  PLARGE_INTEGER ByteOffset,
-  _In_opt_  PULONG Key
-);*/
-
 EXTERN_C_END
 
 // Last time instance wasn't just your own PE header's pointer was in 16 bit days.
@@ -100,100 +70,6 @@ static OBJECT_ATTRIBUTES make_object_attributes(
   );
   return a;
 }
-
-/*DWORD utl::read_file(std::wstring_view path, std::vector<char>& content)
-{
-  auto error = NO_ERROR;
-  auto attr = make_object_attributes(path.data());
-  HANDLE file = nullptr;
-  IO_STATUS_BLOCK io_status;
-  auto status = NtOpenFile(
-    &file,
-    FILE_READ_DATA,
-    &attr,
-    &io_status,
-    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-    0
-  );
-  if (NT_SUCCESS(status))
-  {
-    LARGE_INTEGER li{};
-    if (GetFileSizeEx(file, &li))
-    {
-      if (li.QuadPart <= 64 << 20) // max 64 MB
-      {
-        content.resize(li.QuadPart);
-        LARGE_INTEGER offset;
-        offset.QuadPart = 0;
-        status = NtReadFile(
-          file,
-          nullptr,
-          nullptr,
-          nullptr,
-          &io_status,
-          content.data(),
-          li.QuadPart,
-          &offset,
-          nullptr
-        );
-        if (!NT_SUCCESS(status))
-          error = RtlNtStatusToDosError(status);
-      }
-      else
-        error = ERROR_INSUFFICIENT_BUFFER;
-    }
-    else
-      error = GetLastError();
-    NtClose(file);
-  }
-  else
-    error = RtlNtStatusToDosError(status);
-  if (error)
-    content.clear();
-  return error;
-}
-
-DWORD utl::write_file(std::wstring_view path, const void* data, size_t size)
-{
-  auto error = NO_ERROR;
-  auto attr = make_object_attributes(path.data());
-  HANDLE file = nullptr;
-  IO_STATUS_BLOCK io_status;
-  auto status = NtCreateFile(
-    &file,
-    FILE_READ_DATA,
-    &attr,
-    &io_status,
-    nullptr,
-    FILE_ATTRIBUTE_NORMAL,
-    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-    FILE_CREATE,
-    0,
-    nullptr,
-    0
-  );
-  if (NT_SUCCESS(status))
-  {
-    LARGE_INTEGER offset;
-    offset.QuadPart = 0;
-    status = NtWriteFile(
-      file,
-      nullptr,
-      nullptr,
-      nullptr,
-      &io_status,
-      (PVOID)data,
-      size,
-      &offset,
-      nullptr
-    );
-    if (!NT_SUCCESS(status))
-      error = RtlNtStatusToDosError(status);
-  }
-  else
-    error = RtlNtStatusToDosError(status);
-  return error;
-}*/
 
 std::pair<const void*, size_t> utl::get_resource(WORD type, WORD id)
 {
