@@ -27,6 +27,9 @@ namespace utl
   DWORD write_file(std::wstring_view path, const void* data, size_t size);
   DWORD nuke_file(std::wstring_view path);
 
+  DWORD open_key(PHKEY handle, const wchar_t* path, ULONG desired_access);
+  DWORD rename_key(const wchar_t* old_path, const wchar_t* new_path);
+
   DWORD get_KnownDllPath(std::wstring& wstr);
 
   std::pair<const void*, size_t> get_dll_blob();
@@ -86,7 +89,7 @@ namespace utl
 
     unique_redirection_disabler(const unique_redirection_disabler&) = delete;
 
-    unique_redirection_disabler(unique_redirection_disabler&& other)
+    unique_redirection_disabler(unique_redirection_disabler&& other) noexcept
     {
       Wow64DisableWow64FsRedirection(&OldValue);
       std::swap(OldValue, other.OldValue);
@@ -99,7 +102,7 @@ namespace utl
 
     unique_redirection_disabler& operator=(const unique_redirection_disabler&) = delete;
 
-    unique_redirection_disabler& operator=(unique_redirection_disabler&& other)
+    unique_redirection_disabler& operator=(unique_redirection_disabler&& other) noexcept
     {
       std::swap(OldValue, other.OldValue);
       return *this;

@@ -40,14 +40,11 @@ extern "C" NTSYSAPI NTSTATUS NTAPI RtlAdjustPrivilege(
 
 #define FLG_APPLICATION_VERIFIER (0x100)
 
-static const wchar_t* PatcherStateText(PatcherState state)
-{
-  static const wchar_t* const text[] = { L"No", L"Yes", L"Probably", L"Outdated" };
-  return text[(size_t)state];
-}
-
 static constexpr wchar_t kPatcherDllName[] = L"SecureUxTheme.dll";
 static constexpr wchar_t kIFEO[] = L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\";
+static constexpr wchar_t kCurrentColorsPath[] = L"\\Registry\\Machine\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\";
+static constexpr wchar_t kCurrentColorsName[] = L"DefaultColors";
+static constexpr wchar_t kCurrentColorsBackup[] = L"DefaultColors_backup";
 static constexpr wchar_t kHelpText[] =
 LR"(- For any custom themes to work SecureUxTheme or another patcher must be installed
 - Styles need to be signed, the signature just doesn't need to be valid
@@ -59,6 +56,28 @@ LR"(- For any custom themes to work SecureUxTheme or another patcher must be ins
   - Patching themes and clicking "Personalization" to start a hooked instance
   - Using ThemeTool to apply themes.
 )";
+
+// RegRenameKey is undocumented
+
+static DWORD RenameDefaultColors()
+{
+  const auto old_name = std::wstring{ kCurrentColorsPath } + kCurrentColorsName;
+  //return RegRenameKey(HKEY_LOCAL_MACHINE, old_name.c_str(), kCurrentColorsBackup);
+  return utl::rename_key(old_name.c_str(), kCurrentColorsBackup);
+}
+
+static DWORD RestoreDefaultColors()
+{
+  const auto old_name = std::wstring{ kCurrentColorsPath } + kCurrentColorsBackup;
+  //return RegRenameKey(HKEY_LOCAL_MACHINE, old_name.c_str(), kCurrentColorsName);
+  return utl::rename_key(old_name.c_str(), kCurrentColorsName);
+}
+
+static const wchar_t* PatcherStateText(PatcherState state)
+{
+  static const wchar_t* const text[] = { L"No", L"Yes", L"Probably", L"Outdated" };
+  return text[(size_t)state];
+}
 
 static std::wstring GetPatcherDllPath()
 {
@@ -80,12 +99,12 @@ static bool IsLoadedInSession()
     L"SecureUxTheme_Loaded"
   );
   if (!h)
-    return false;
+    return GetLastError() == ERROR_ACCESS_DENIED; // honestly, i have no idea how to set up permissions when creating it
   CloseHandle(h);
   return true;
 }
 
-std::wstring GetWindowTextStr(HWND hwnd)
+static std::wstring GetWindowTextStr(HWND hwnd)
 {
   SetLastError(0);
   const auto len = GetWindowTextLengthW(hwnd);
@@ -298,6 +317,11 @@ DWORD MainDialog::UninstallInternal()
       utl::ErrorToString(ret).c_str()
     );
   }
+
+  // we don't really care if it succeeds
+  const auto restore_ret = RestoreDefaultColors();
+  Log(L"RestoreDefaultColors returned %08X", restore_ret);
+
   return ret;
 }
 
@@ -386,6 +410,22 @@ void MainDialog::Install()
         MB_OK | MB_ICONWARNING,
         L"Installing for \"%s\" failed. Error: %s",
         check.second,
+        utl::ErrorToString(ret).c_str()
+      );
+    }
+  }
+
+  if(BST_CHECKED == Button_GetCheck(_hwnd_CHECK_COLORS))
+  {
+    const auto ret = RenameDefaultColors();
+    Log(L"RenameDefaultColors returned %08X", ret);
+    if(ret && ret != ERROR_PATH_NOT_FOUND)
+    {
+      utl::FormattedMessageBox(
+        _hwnd,
+        L"Warning",
+        MB_OK | MB_ICONWARNING,
+        L"Renaming CurrentColors failed. If you have the LogonUI problem consider using LogonUI hook. Error: %s",
         utl::ErrorToString(ret).c_str()
       );
     }
