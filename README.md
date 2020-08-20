@@ -28,7 +28,7 @@ Styles must still have a format-wise valid signature appended, it is just not ve
 
 ## Download
 
-[Latest release](https://github.com/namazso/SecureUxTheme/releases/latest/download/SecureUxTheme_setup.exe)
+[Latest release](https://github.com/namazso/SecureUxTheme/releases/latest/download/ThemeTool.exe)
 
 ## Download is MALWARE???
 
