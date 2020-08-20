@@ -96,6 +96,12 @@ A: See [Issue #6](https://github.com/namazso/SecureUxTheme/issues/6)
 
 A: Unfortunately, this is [close to impossible](https://github.com/namazso/SecureUxTheme/issues/9#issuecomment-611897882)
 
+---
+
+### **Q:** `SelectTheme: pTheme->GetVisualStyle failed with 80070002`
+
+A: You probably installed a theme by opening / double clicking. Custom themes cannot be installed like that, they must be moved to `%WINDIR%\Resources\Themes` with all their accompanying files.
+
 ## Building
 
 ### Requirements
