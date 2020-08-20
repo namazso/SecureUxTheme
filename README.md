@@ -44,11 +44,7 @@ Do note this feature might mess up some high contrast theme features when lockin
 
 ## Screenshot
 
-Installer:
-
-![Installer Screenshot](resources/screenshot_setup.png)
-
-ThemeTool:
+Program:
 
 ![ThemeTool Screenshot](resources/screenshot_themetool.png)
 
@@ -57,11 +53,11 @@ Regardless, here's a cool theme for illustration:
 
 ![Screenshot](resources/screenshot.png)
 
-[Theme used](https://7themes.su/load/windows_10_themes/temnye/10_pro_edition/34-1-0-1321)
+[Theme used](https://www.deviantart.com/niivu/art/10-Pro-Edition-802720222)
 
 ## Where to get themes
 
-I recommend [7themes.su](https://7themes.su/) for finding themes. Alternatives are [DeviantArt](https://www.deviantart.com/customization/skins/windows/win10/newest/?offset=0), and if you don't mind paying [cleodesktop](https://www.cleodesktop.com/), although I haven't tried that. Also, you can just search for themes with your favorite search engine.
+I recommend [DeviantArt](https://www.deviantart.com/tag/windows10themes) for finding themes, although it is a bit noisy. Alternatives are [7themes.su](https://7themes.su/) which is much more organized (but be wary of fake adware download buttons! use the one that says Яндекс.Диск), and if you don't mind paying [cleodesktop](https://www.cleodesktop.com/), although I haven't tried that. Also, you can just search for themes with your favorite search engine. Make sure that the theme you're about to apply is compatible with your windows version.
 
 ## Donations
 
@@ -99,12 +95,6 @@ A: See [Issue #6](https://github.com/namazso/SecureUxTheme/issues/6)
 ### **Q: Can you make themes per-program?**
 
 A: Unfortunately, this is [close to impossible](https://github.com/namazso/SecureUxTheme/issues/9#issuecomment-611897882)
-
----
-
-### **Q: The installer is throwing some error, what do I do?**
-
-A: Always follow the installer - reboot after each Install / Uninstall, do reinstalls like `uninstall - reboot - install - reboot` instead of installing twice in a row.
 
 ## Building
 
