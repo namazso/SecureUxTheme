@@ -48,13 +48,13 @@ static constexpr wchar_t kCurrentColorsBackup[] = L"DefaultColors_backup";
 static constexpr wchar_t kHelpText[] =
 LR"(- For any custom themes to work SecureUxTheme or another patcher must be installed
 - Styles need to be signed, the signature just doesn't need to be valid
-  - To add an invalid signature to a style click "Fix signature"
-  - Alternatively, you can simply drag && drop files onto this window.
-  - ThemeTool can automatically add them when applying.
+  - To add an invalid signature to a style select a theme using it and click Patch
 - After install and reboot, there are multiple ways to set themes:
-  - Hooking SystemSettings, patching themes, then Settings (1703+)
-  - Patching themes and clicking "Personalization" to start a hooked instance
-  - Using ThemeTool to apply themes.
+  - If "Hook explorer" is enabled you can use "Personalization" to set a patched theme
+  - If "Hook SystemSettings" is enabled you can use "Themes" to set a patched theme
+- To prevent LogonUI from resetting colors either
+  - DefaultColors must be renamed / deleted
+  - or LogonUI must be hooked
 )";
 
 // RegRenameKey is undocumented
