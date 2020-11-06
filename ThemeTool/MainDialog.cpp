@@ -58,19 +58,15 @@ LR"(- For any custom themes to work SecureUxTheme or another patcher must be ins
   - or LogonUI must be hooked
 )";
 
-// RegRenameKey is undocumented
-
 static DWORD RenameDefaultColors()
 {
   const auto old_name = std::wstring{ kCurrentColorsPath } + kCurrentColorsName;
-  //return RegRenameKey(HKEY_LOCAL_MACHINE, old_name.c_str(), kCurrentColorsBackup);
   return utl::rename_key(old_name.c_str(), kCurrentColorsBackup);
 }
 
 static DWORD RestoreDefaultColors()
 {
   const auto old_name = std::wstring{ kCurrentColorsPath } + kCurrentColorsBackup;
-  //return RegRenameKey(HKEY_LOCAL_MACHINE, old_name.c_str(), kCurrentColorsName);
   return utl::rename_key(old_name.c_str(), kCurrentColorsName);
 }
 
@@ -90,6 +86,13 @@ static std::wstring GetPatcherDllPath()
   path += L"\\";
   path += kPatcherDllName;
   return path;
+}
+
+static bool IsWin10()
+{
+  ULONG major = 0, minor = 0, build = 0;
+  RtlGetNtVersionNumbers(&major, &minor, &build);
+  return major == 10;
 }
 
 static bool IsLoadedInSession()
@@ -506,7 +509,7 @@ void MainDialog::UpdatePatcherState()
   _is_loaded =
     is_loaded
     ? PatcherState::Yes
-    : (_is_installed == PatcherState::Outdated ? PatcherState::Probably : PatcherState::No);
+    : (_is_installed == PatcherState::Outdated || (!IsWin10() && _is_installed == PatcherState::Yes) ? PatcherState::Probably : PatcherState::No);
   _is_logonui = reg_logonui ? PatcherState::Yes : PatcherState::No;
   _is_explorer = reg_explorer ? PatcherState::Yes : PatcherState::No;
   _is_systemsettings = reg_systemsettings ? PatcherState::Yes : PatcherState::No;
@@ -732,7 +735,7 @@ Are you sure you want to continue?)",
 %s
 The error encountered was: %s.
 Do you want to continue?)",
-        _is_elevated
+        !_is_elevated
           ? L"Try executing the tool as administrator."
           : L"It seems like we're already elevated. Consider submitting a but report.",
         utl::ErrorToString(fix_result).c_str()
@@ -742,7 +745,7 @@ Do you want to continue?)",
         return;
     }
 
-    if(_is_installed == PatcherState::Yes && _is_loaded != PatcherState::Yes)
+    if(_is_installed == PatcherState::Yes && _is_loaded == PatcherState::No)
     {
       const auto answer = utl::FormattedMessageBox(
         _hwnd,

@@ -90,6 +90,24 @@ LdrGetProcedureAddress(
 );
 
 NTSYSAPI
+PVOID
+NTAPI
+RtlPcToFileHeader(
+  _In_  PVOID PcValue,
+  _Out_ PVOID* BaseOfImage
+);
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrGetDllHandle(
+  _In_opt_	PWSTR DllPath,
+  _In_opt_	PULONG DllCharacteristics,
+  _In_		PUNICODE_STRING DllName,
+  _Out_		PVOID* DllHandle
+);
+
+NTSYSAPI
 ULONG
 DbgPrintEx(
   ULONG ComponentId,
@@ -271,11 +289,28 @@ void signal_loaded()
   if (!NT_SUCCESS(status))
     return; // whatever
 
+  const auto pRtlGetTokenNamedObjectPath = (decltype(&RtlGetTokenNamedObjectPath))[]
+  {
+    PVOID ntdll = nullptr;
+    PVOID proc = nullptr;
+    RtlPcToFileHeader((PVOID)&RtlPcToFileHeader, &ntdll);
+    if (ntdll)
+    {
+      ANSI_STRING name = RTL_CONSTANT_STRING("RtlGetTokenNamedObjectPath");
+      LdrGetProcedureAddress(ntdll, &name, 0, &proc);
+    }
+    return proc;
+  }();
+
+  if (!pRtlGetTokenNamedObjectPath)
+    return;
+
   UNICODE_STRING named_objects{};
-  
+
   // Let's call this totally undocumented function with no example code available anywhere, to get our session's BNO
   // hopefully kernel shit is set up already for this, since we're running before our own process is considered alive.
-  status = RtlGetTokenNamedObjectPath(token, nullptr, &named_objects);
+  status = pRtlGetTokenNamedObjectPath(token, nullptr, &named_objects);
+
   if (!NT_SUCCESS(status))
     return;
 
