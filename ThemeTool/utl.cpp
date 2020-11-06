@@ -78,8 +78,12 @@ std::pair<const void*, size_t> utl::get_resource(WORD type, WORD id)
     MAKEINTRESOURCE(id),
     MAKEINTRESOURCE(type)
   );
+  if (!rc)
+    return { nullptr, 0 };
   const auto rc_data = LoadResource(get_instance(), rc);
   const auto size = SizeofResource(get_instance(), rc);
+  if (!rc_data)
+    return { nullptr, 0 };
   const auto data = static_cast<const void*>(LockResource(rc_data));
   return { data, size };
 }
@@ -95,7 +99,7 @@ static USHORT get_native_architecture()
     typedef BOOL(WINAPI* LPFN_ISWOW64PROCESS2) (HANDLE, PUSHORT, PUSHORT);
 
     const auto kernel32 = GetModuleHandleW(L"kernel32");
-    const auto pIsWow64Process2 = (LPFN_ISWOW64PROCESS2)GetProcAddress(kernel32, "IsWow64Process2");
+    const auto pIsWow64Process2 = kernel32 ? (LPFN_ISWOW64PROCESS2)GetProcAddress(kernel32, "IsWow64Process2") : nullptr;
     USHORT ProcessMachine = 0;
     USHORT NativeMachine = 0;
 
@@ -154,7 +158,7 @@ std::pair<const void*, size_t> utl::get_dll_blob()
 
 bool utl::is_elevated()
 {
-  auto result = FALSE;
+  DWORD result = FALSE;
   HANDLE token = nullptr;
   if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token))
   {

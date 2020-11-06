@@ -52,6 +52,7 @@ LR"(- For any custom themes to work SecureUxTheme or another patcher must be ins
 - After install and reboot, there are multiple ways to set themes:
   - If "Hook explorer" is enabled you can use "Personalization" to set a patched theme
   - If "Hook SystemSettings" is enabled you can use "Themes" to set a patched theme
+  - You can simply use ThemeTool to patch and apply themes (recommended)
 - To prevent LogonUI from resetting colors either
   - DefaultColors must be renamed / deleted
   - or LogonUI must be hooked
@@ -545,15 +546,21 @@ MainDialog::MainDialog(HWND hDlg, void*)
   Button_Enable(_hwnd_BUTTON_PATCH, FALSE);
   Button_Enable(_hwnd_BUTTON_APPLY, FALSE);
 
-  if(!_is_elevated)
+  if (!_is_elevated)
   {
-    Button_Enable(_hwnd_BUTTON_INSTALL, FALSE);
-    Button_Enable(_hwnd_BUTTON_UNINSTALL, FALSE);
-    Button_Enable(_hwnd_CHECK_COLORS, FALSE);
-    Button_Enable(_hwnd_CHECK_EXPLORER, FALSE);
-    Button_Enable(_hwnd_CHECK_LOGONUI, FALSE);
-    Button_Enable(_hwnd_CHECK_SYSTEMSETTINGS, FALSE);
+    ShowWindow(_hwnd_BUTTON_INSTALL, SW_HIDE);
+    ShowWindow(_hwnd_BUTTON_UNINSTALL, SW_HIDE);
+    ShowWindow(_hwnd_CHECK_COLORS, SW_HIDE);
+    ShowWindow(_hwnd_CHECK_EXPLORER, SW_HIDE);
+    ShowWindow(_hwnd_CHECK_LOGONUI, SW_HIDE);
+    ShowWindow(_hwnd_CHECK_SYSTEMSETTINGS, SW_HIDE);
+    ShowWindow(_hwnd_BUTTON_HELP, SW_HIDE);
   }
+  else
+  {
+    ShowWindow(_hwnd_STATIC_NOTADMIN, SW_HIDE);
+  }
+  
 
   ListView_SetExtendedListViewStyle(_hwnd_LIST, LVS_EX_AUTOSIZECOLUMNS | LVS_EX_FULLROWSELECT);
   LVCOLUMN col{};

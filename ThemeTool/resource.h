@@ -32,6 +32,7 @@
 #define IDC_STATIC_SYSTEMSETTINGS       1029
 #define IDC_STATIC_LOGONUI              1030
 #define IDC_STATIC_NEEDS_PATCHING       1031
+#define IDC_STATIC_NOTADMIN             1032
 
 // Next default values for new objects
 // 
@@ -40,7 +41,7 @@
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        129
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1032
+#define _APS_NEXT_CONTROL_VALUE         1033
 #define _APS_NEXT_SYMED_VALUE           113
 #endif
 #endif

@@ -53,6 +53,7 @@ class MainDialog
   MAKE_IDC_MEMBER(_hwnd, STATIC_NEEDS_PATCHING);
   MAKE_IDC_MEMBER(_hwnd, STATIC_STYLE);
   MAKE_IDC_MEMBER(_hwnd, STATIC_SYSTEMSETTINGS);
+  MAKE_IDC_MEMBER(_hwnd, STATIC_NOTADMIN);
 
   PatcherState _is_installed;
   PatcherState _is_loaded;
