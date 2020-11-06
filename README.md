@@ -19,7 +19,7 @@ Styles must still have a format-wise valid signature appended, it is just not ve
 ## Operating System Support\*
 
 * Windows 8.1
-* Windows 10 (tested: 1507, 1607, 1809, 1903, 1909, 2004)
+* Windows 10 (tested: 1507, 1607, 1809, 1903, 1909, 2004, 20H2)
 * Future versions\*\*
 
 \* Windows 7 or older will never be supported due to the way themes are implemented.
@@ -88,13 +88,13 @@ A: [Help: Step by step installing SecureUxTheme and a custom theme](https://gith
 
 ### **Q: I have 1909 or later, and the Address bar / Search bar is weird when clicked**
 
-A: See [Issue #6](https://github.com/namazso/SecureUxTheme/issues/6)
+A: Consider using OldNewExplorer which fixes this. Alternatively, see [Issue #6](https://github.com/namazso/SecureUxTheme/issues/6).
 
 ---
 
 ### **Q: Can you make themes per-program?**
 
-A: Unfortunately, this is [close to impossible](https://github.com/namazso/SecureUxTheme/issues/9#issuecomment-611897882)
+A: Unfortunately, this is [close to impossible](https://github.com/namazso/SecureUxTheme/issues/9#issuecomment-611897882). However for Office programs, there is a [plugin](https://github.com/matafokka/ExcelDarkThemeFix) for fixing this.
 
 ---
 
@@ -102,11 +102,17 @@ A: Unfortunately, this is [close to impossible](https://github.com/namazso/Secur
 
 A: You probably installed a theme by opening / double clicking. Custom themes cannot be installed like that, they must be moved to `%WINDIR%\Resources\Themes` with all their accompanying files.
 
+## Is it SecureUxTheme or ThemeTool? And what does it stand for anyways?
+
+Naming has been pretty messy in this project, I admit that. Originally this project was for myself, and consisted of only the hooking dll, and required hex-editing the invalid signature to the themes. The project was named SecureUxTheme. In hindsight, this was a pretty bad naming. While it contains "secure" in the name, it is rather "safe" instead of "secure". The UxTheme part comes from the dll name (`uxtheme.dll`) which needed to be patched on XP when visual styles were introduced. This dll is no longer containing the signature verification code since Windows Vista, however the name stuck, and all software similar to this are called uxtheme-patchers. Anyways, after deciding to release, I added a new component named "ThemeInvalidSigner" for adding the invalid signature to themes, and also an NSIS installer so that you don't have to run .reg files. This was the initial release. Later I grew tired of various problems and issue reports with the built-in Personalization I was using for letting users set themes, and this is when ThemeTool was born. It originally was a proof-of-concept app for setting themes via the IThemeManager2 COM interface I reverse-engineered, however it soon got the capability of patching themes, and eventually replaced the installer too. This also improved on the virus detections, for unknown reasons.
+
+**TL;DR**: SecureUxTheme is the project and the hook dll, ThemeTool is the installer / UI component.
+
 ## Building
 
 ### Requirements
 
-* Visual Studio 2019
+* Visual Studio 2019 with x86, x64, ARM64 toolchains
 
 ### Compiling
 
