@@ -36,8 +36,6 @@
 // we use the builtin one so all our crt methods aren't resolved from ntdll
 #pragma comment(lib, "ntdll.lib")
 
-extern void dll_loaded(PVOID base, PCWSTR name);
-
 HINSTANCE g_instance;
 CComPtr<IThemeManager2> g_pThemeManager2;
 
@@ -66,11 +64,37 @@ static int main_gui(int nCmdShow)
   if (FAILED(hr))
     return POST_ERROR(L"g_pThemeManager2->Init failed, hr = %08X", hr);
 
-  const auto themeui = LoadLibraryW(L"themeui");
-  if (!themeui)
-    return POST_ERROR(L"LoadLibrary(themeui) failed, LastError = %08X", GetLastError());
+  const auto advapi32 = LoadLibraryW(L"advapi32");
+  if (!advapi32)
+    return POST_ERROR(L"Loading advapi32 failed, GetLastError() = %08X", GetLastError());
 
-  dll_loaded(themeui, L"themeui");
+  const auto pfn = GetProcAddress(advapi32, "CryptVerifySignatureW");
+  if (!pfn)
+    return POST_ERROR(L"CryptVerifySignatureW not found, GetLastError() = %08X", GetLastError());
+
+  // We can just do a dirty patch here since noone else would be calling CryptVerifySignatureW in our process
+
+#if defined(_M_IX86) || defined(__i386__)
+
+  constexpr BYTE bytes[] = {
+    0xB8, 0x01, 0x00, 0x00, 0x00,   // mov eax, 1
+    0xC2, 0x18, 0x00                // ret 18
+  };
+  const auto ret = WriteProcessMemory(
+    GetCurrentProcess(),
+    (PVOID)pfn,
+    bytes,
+    sizeof(bytes),
+    nullptr
+  );
+
+#else
+#error ThemeTool only supports x86 builds
+#endif
+
+
+  if (!ret)
+    return POST_ERROR(L"WriteProcessMemory failed, GetLastError() = %08X", GetLastError());
 
   const auto dialog = CreateDialogParam(
     g_instance,

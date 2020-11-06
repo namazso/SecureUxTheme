@@ -27,9 +27,6 @@
     <ClCompile Include="signature.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\SecureUxTheme\avrf.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="utl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
