@@ -880,6 +880,16 @@ INT_PTR MainDialog::DlgProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
       if (HIWORD(wParam) == BN_CLICKED)
         PatchTheme(CurrentSelection());
       return TRUE;
+    case IDC_CHECK_EXPLORER:
+      if (HIWORD(wParam) == BN_CLICKED && Button_GetCheck(_hwnd_CHECK_EXPLORER) == BST_CHECKED)
+        MessageBoxW(
+          _hwnd,
+          L"Are you sure about this? Hooking explorer on Win10 is rather pointless, and can cause instability, high"
+          L" memory usage and bad performance in explorer. Consider (re-)reading the Help below the checkboxes.",
+          L"Warning",
+          MB_OK | MB_ICONWARNING
+        );
+      return TRUE;
     }
     break;
 
