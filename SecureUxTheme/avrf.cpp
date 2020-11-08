@@ -26,6 +26,12 @@
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 
+// Make debug builds link. Debugging sucks either way
+#ifdef _ITERATOR_DEBUG_LEVEL
+#undef _ITERATOR_DEBUG_LEVEL
+#endif
+#define _ITERATOR_DEBUG_LEVEL 0
+
 #include <ntstatus.h>
 #define WIN32_NO_STATUS
 #include <windows.h>
