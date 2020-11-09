@@ -27,6 +27,7 @@
 #include <shellapi.h>
 #include <winternl.h>
 #include <wtsapi32.h>
+#include <Psapi.h>
 
 #include <tuple>
 #include <list>

@@ -64,37 +64,48 @@ static int main_gui(int nCmdShow)
   if (FAILED(hr))
     return POST_ERROR(L"g_pThemeManager2->Init failed, hr = %08X", hr);
 
-  const auto advapi32 = LoadLibraryW(L"advapi32");
-  if (!advapi32)
-    return POST_ERROR(L"Loading advapi32 failed, GetLastError() = %08X", GetLastError());
+  // win8
+  LoadLibraryExW(L"advapi32", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+  // win10
+  LoadLibraryExW(L"cryptsp", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
 
-  const auto pfn = GetProcAddress(advapi32, "CryptVerifySignatureW");
-  if (!pfn)
-    return POST_ERROR(L"CryptVerifySignatureW not found, GetLastError() = %08X", GetLastError());
+  HMODULE modules[1024];
+  DWORD needed = 0;
 
-  // We can just do a dirty patch here since noone else would be calling CryptVerifySignatureW in our process
+  if (EnumProcessModules(GetCurrentProcess(), modules, sizeof(modules), &needed))
+  {
+    for (auto i = 0u; i < (needed / sizeof(HMODULE)); i++)
+    {
+      if (const auto pfn = GetProcAddress(modules[i], "CryptVerifySignatureW"))
+      {
+        // We can just do a dirty patch here since noone else would be calling CryptVerifySignatureW in our process
 
 #if defined(_M_IX86) || defined(__i386__)
 
-  constexpr BYTE bytes[] = {
-    0xB8, 0x01, 0x00, 0x00, 0x00,   // mov eax, 1
-    0xC2, 0x18, 0x00                // ret 18
-  };
-  const auto ret = WriteProcessMemory(
-    GetCurrentProcess(),
-    (PVOID)pfn,
-    bytes,
-    sizeof(bytes),
-    nullptr
-  );
+        constexpr BYTE bytes[] = {
+          0xB8, 0x01, 0x00, 0x00, 0x00,   // mov eax, 1
+          0xC2, 0x18, 0x00                // ret 18
+        };
+        const auto ret = WriteProcessMemory(
+          GetCurrentProcess(),
+          (PVOID)pfn,
+          bytes,
+          sizeof(bytes),
+          nullptr
+        );
 
 #else
 #error ThemeTool only supports x86 builds
 #endif
 
-
-  if (!ret)
+        if (!ret)
+          return POST_ERROR(L"EnumProcessModules failed, GetLastError() = %08X", GetLastError());
+      }
+    }
+  }
+  else
     return POST_ERROR(L"WriteProcessMemory failed, GetLastError() = %08X", GetLastError());
+
 
   const auto dialog = CreateDialogParam(
     g_instance,
