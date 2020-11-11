@@ -67,7 +67,7 @@ public:
     if(FAILED(hr) || !lpwstr)
     {
       WCHAR msg[64];
-      wsprintf(msg, L"Error: %08X", hr);
+      wsprintf(msg, ESTRt(L"Error: %08X"), hr);
       return { msg };
     }
     std::wstring wstr{ lpwstr };
@@ -84,7 +84,7 @@ public:
     if(SUCCEEDED(hr) && lpwstr)
     {
       const auto lower = CharLowerW(SysAllocString(lpwstr));
-      const auto is_style = wcsstr(lower, L"msstyles") != nullptr;
+      const auto is_style = wcsstr(lower, ESTRt(L"msstyles")) != nullptr;
       SysFreeString(lower);
       if(is_style)
       {
@@ -99,7 +99,7 @@ public:
     if (SUCCEEDED(hr) && lpwstr)
     {
       const auto lower = CharLowerW(SysAllocString(lpwstr));
-      const auto is_style = wcsstr(lower, L"msstyles") != nullptr;
+      const auto is_style = wcsstr(lower, ESTRt(L"msstyles")) != nullptr;
       SysFreeString(lower);
       if (is_style)
       {

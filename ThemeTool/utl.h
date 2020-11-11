@@ -73,7 +73,7 @@ namespace utl
     wchar_t text[4096];
     vswprintf_s(text, fmt, args);
     va_end(args);
-    MessageBoxW(hwnd, text, L"Fatal error", MB_OK | MB_ICONERROR);
+    MessageBoxW(hwnd, text, ESTRt(L"Fatal error"), MB_OK | MB_ICONERROR);
     PostQuitMessage(-1);
   }
 
