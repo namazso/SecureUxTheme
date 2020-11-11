@@ -1,0 +1,73 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - master
+
+jobs:
+  build:
+    name: build-windows
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+      with:
+          submodules: recursive
+          
+    - name: Figure out if we're running for a tag
+      id: checktag
+      run: |
+        If($Env:GITHUB_REF -match "v([0-9]*)\.([0-9]*)\.([0-9]*)") {
+            Echo ("::set-output name=version::" + $Matches[0]);
+            Echo ("::set-output name=version_major::" + $Matches[1]);
+            Echo ("::set-output name=version_minor::" + $Matches[2]);
+            Echo ("::set-output name=version_patch::" + $Matches[3]);
+        }
+
+    - name: setup-msbuild
+      uses: microsoft/setup-msbuild@v1
+      
+    - name: Build Solution (x64)
+      run: |
+        cd ${{ github.workspace }}
+        msbuild "-property:Configuration=Release;Platform=x64" SecureUxTheme.sln
+
+    - name: Build Solution (ARM64)
+      run: |
+        cd ${{ github.workspace }}
+        msbuild "-property:Configuration=Release;Platform=ARM64" SecureUxTheme.sln
+        
+      # Win32 built last
+    - name: Build Solution (Win32)
+      run: |
+        cd ${{ github.workspace }}
+        msbuild "-property:Configuration=Release;Platform=Win32" SecureUxTheme.sln
+
+
+    - name: Create release
+      if: ${{ steps.checktag.outputs.version != '' }}
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: true
+
+    - name: Upload release asset
+      if: ${{ steps.checktag.outputs.version != '' }}
+      id: upload-release-asset 
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+        asset_path: .\Release\buildtest.exe
+        asset_name: buildtest-Win32.exe
+        asset_content_type: application/octet-stream
