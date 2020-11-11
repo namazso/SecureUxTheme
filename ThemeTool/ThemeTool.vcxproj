@@ -240,6 +240,7 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="signature.h" />
+    <ClInclude Include="stringencrypt.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="utl.h" />
   </ItemGroup>

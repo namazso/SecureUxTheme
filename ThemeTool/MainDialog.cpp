@@ -145,13 +145,13 @@ void MainDialog::Log(const wchar_t* fmt, ...)
 
 bool MainDialog::IsInstalledForExecutable(const wchar_t* executable)
 {
-  const auto subkey = std::wstring{ kIFEO } +executable;
+  const auto subkey = std::wstring{ ESTRt(kIFEO) } +executable;
   DWORD GlobalFlag = 0;
   DWORD GlobalFlag_size = sizeof(GlobalFlag);
   const auto ret1 = RegGetValueW(
     HKEY_LOCAL_MACHINE,
     subkey.c_str(),
-    L"GlobalFlag",
+    ESTRt(L"GlobalFlag"),
     RRF_RT_REG_DWORD | RRF_ZEROONFAILURE,
     nullptr,
     &GlobalFlag,
@@ -162,7 +162,7 @@ bool MainDialog::IsInstalledForExecutable(const wchar_t* executable)
   const auto ret2 = RegGetValueW(
     HKEY_LOCAL_MACHINE,
     subkey.c_str(),
-    L"VerifierDlls",
+    ESTRt(L"VerifierDlls"),
     RRF_RT_REG_SZ | RRF_ZEROONFAILURE,
     nullptr,
     VerifierDlls,
@@ -173,14 +173,14 @@ bool MainDialog::IsInstalledForExecutable(const wchar_t* executable)
 
 DWORD MainDialog::InstallForExecutable(const wchar_t* executable)
 {
-  const auto subkey = std::wstring{ kIFEO } +executable;
+  const auto subkey = std::wstring{ ESTRt(kIFEO) } +executable;
   DWORD GlobalFlag = 0;
   DWORD GlobalFlag_size = sizeof(GlobalFlag);
   // we don't care if it fails
   RegGetValueW(
     HKEY_LOCAL_MACHINE,
     subkey.c_str(),
-    L"GlobalFlag",
+    ESTRt(L"GlobalFlag"),
     RRF_RT_REG_DWORD | RRF_ZEROONFAILURE,
     nullptr,
     &GlobalFlag,
@@ -190,7 +190,7 @@ DWORD MainDialog::InstallForExecutable(const wchar_t* executable)
   auto ret = RegSetKeyValueW(
     HKEY_LOCAL_MACHINE,
     subkey.c_str(),
-    L"GlobalFlag",
+    ESTRt(L"GlobalFlag"),
     REG_DWORD,
     &GlobalFlag,
     sizeof(GlobalFlag)
@@ -200,7 +200,7 @@ DWORD MainDialog::InstallForExecutable(const wchar_t* executable)
     ret = RegSetKeyValueW(
       HKEY_LOCAL_MACHINE,
       subkey.c_str(),
-      L"VerifierDlls",
+      ESTRt(L"VerifierDlls"),
       REG_SZ,
       kPatcherDllName,
       sizeof(kPatcherDllName)
@@ -211,14 +211,14 @@ DWORD MainDialog::InstallForExecutable(const wchar_t* executable)
 
 DWORD MainDialog::UninstallForExecutable(const wchar_t* executable)
 {
-  const auto subkey = std::wstring{ kIFEO } +executable;
+  const auto subkey = std::wstring{ ESTRt(kIFEO) } +executable;
   DWORD GlobalFlag = 0;
   DWORD GlobalFlag_size = sizeof(GlobalFlag);
   // we don't care if it fails
   RegGetValueW(
     HKEY_LOCAL_MACHINE,
     subkey.c_str(),
-    L"GlobalFlag",
+    ESTRt(L"GlobalFlag"),
     RRF_RT_REG_DWORD | RRF_ZEROONFAILURE,
     nullptr,
     &GlobalFlag,
@@ -231,7 +231,7 @@ DWORD MainDialog::UninstallForExecutable(const wchar_t* executable)
     ret = RegDeleteKeyValueW(
       HKEY_LOCAL_MACHINE,
       subkey.c_str(),
-      L"GlobalFlag"
+      ESTRt(L"GlobalFlag")
     );
   }
   else
@@ -239,7 +239,7 @@ DWORD MainDialog::UninstallForExecutable(const wchar_t* executable)
     ret = RegSetKeyValueW(
       HKEY_LOCAL_MACHINE,
       subkey.c_str(),
-      L"GlobalFlag",
+      ESTRt(L"GlobalFlag"),
       REG_DWORD,
       &GlobalFlag,
       sizeof(GlobalFlag)
@@ -251,7 +251,7 @@ DWORD MainDialog::UninstallForExecutable(const wchar_t* executable)
   RegGetValueW(
     HKEY_LOCAL_MACHINE,
     subkey.c_str(),
-    L"GlobalFlag",
+    ESTRt(L"GlobalFlag"),
     RRF_RT_REG_DWORD | RRF_ZEROONFAILURE,
     nullptr,
     &GlobalFlag,
@@ -265,7 +265,7 @@ DWORD MainDialog::UninstallForExecutable(const wchar_t* executable)
     RegDeleteKeyValueW(
       HKEY_LOCAL_MACHINE,
       subkey.c_str(),
-      L"VerifierDlls"
+      ESTRt(L"VerifierDlls")
     );
   }
 

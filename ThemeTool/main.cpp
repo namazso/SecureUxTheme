@@ -80,12 +80,20 @@ static int main_gui(int nCmdShow)
     return POST_ERROR(L"g_pThemeManager2->Init failed, hr = %08X", hr);
 
   // win8
-  LoadLibraryExW(L"advapi32", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+  LoadLibraryExW(ESTRt(L"advapi32"), nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
   // win10
-  LoadLibraryExW(L"cryptsp", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+  LoadLibraryExW(ESTRt(L"cryptsp"), nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+
+  const auto ntdll = GetModuleHandleW(L"ntdll");
+  if (!ntdll)
+    return POST_ERROR(L"ntdll is null, GetLastError() = %08X", GetLastError());
+
+  const auto pLdrEnumerateLoadedModules = (decltype(&LdrEnumerateLoadedModules))GetProcAddress(ntdll, ESTRt("LdrEnumerateLoadedModules"));
+  if (!pLdrEnumerateLoadedModules)
+    return POST_ERROR(L"pLdrEnumerateLoadedModules is null, GetLastError() = %08X", GetLastError());
 
   // This one only supports local process, so antiviruses dont spazz out over it. Or they just don't know it exists
-  LdrEnumerateLoadedModules(
+  pLdrEnumerateLoadedModules(
     0,
     [](
       _In_ PLDR_DATA_TABLE_ENTRY ModuleInformation,
@@ -93,7 +101,7 @@ static int main_gui(int nCmdShow)
       _Out_ BOOLEAN* Stop
       )
     {
-      if (const auto pfn = GetProcAddress((HMODULE)ModuleInformation->DllBase, "CryptVerifySignatureW"))
+      if (const auto pfn = GetProcAddress((HMODULE)ModuleInformation->DllBase, ESTRt("CryptVerifySignatureW")))
       {
         // We can just do a dirty patch here since noone else would be calling CryptVerifySignatureW in our process
 
@@ -198,7 +206,15 @@ int show_license()
   if (ret)
     return POST_ERROR(L"utl::write_file failed: %08X", ret);
 
-  ret = (DWORD)ShellExecuteW(
+  const auto shell32 = LoadLibraryExW(ESTRt(L"shell32"), nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+  if (!shell32)
+    return POST_ERROR(L"shell32 is null. GetLastError() = %08X", GetLastError());
+
+  const auto pShellExecuteW = decltype(&ShellExecuteW)(GetProcAddress(shell32, ESTRt("ShellExecuteW")));
+  if (!pShellExecuteW)
+    return POST_ERROR(L"pexec is null. GetLastError() = %08X", GetLastError());
+
+  ret = (DWORD)pShellExecuteW(
     nullptr,
     L"edit",
     file_name,
@@ -208,7 +224,7 @@ int show_license()
   );
 
   if(ret <= 32)
-    return POST_ERROR(L"ShellExecuteW failed: %08X", ret);
+    return POST_ERROR(L"exec failed: %08X", ret);
 
   return 0;
 }
