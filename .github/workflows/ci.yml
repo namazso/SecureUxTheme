@@ -47,6 +47,16 @@ jobs:
         cd ${{ github.workspace }}
         msbuild "-property:Configuration=Release;Platform=Win32" SecureUxTheme.sln
 
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: binaries
+        path: |
+          .\bin\Release\Win32\SecureUxTheme.dll
+          .\bin\Release\x64\SecureUxTheme.dll
+          .\bin\Release\ARM64\SecureUxTheme.dll
+          .\bin\Release\Win32\ThemeTool.exe
+          .\bin\Release\Win32\ThemeTool.pdb
 
     - name: Create release
       if: ${{ steps.checktag.outputs.version != '' }}
