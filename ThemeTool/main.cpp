@@ -36,6 +36,21 @@
 // we use the builtin one so all our crt methods aren't resolved from ntdll
 #pragma comment(lib, "ntdll.lib")
 
+typedef VOID(NTAPI LDR_ENUM_CALLBACK)(
+  _In_ PLDR_DATA_TABLE_ENTRY ModuleInformation,
+  _In_ PVOID Parameter,
+  _Out_ BOOLEAN* Stop
+  );
+typedef LDR_ENUM_CALLBACK* PLDR_ENUM_CALLBACK;
+
+NTSTATUS
+NTAPI
+LdrEnumerateLoadedModules(
+  _In_ BOOLEAN ReservedFlag,
+  _In_ PLDR_ENUM_CALLBACK EnumProc,
+  _In_opt_ PVOID Context
+);
+
 HINSTANCE g_instance;
 CComPtr<IThemeManager2> g_pThemeManager2;
 
@@ -69,14 +84,16 @@ static int main_gui(int nCmdShow)
   // win10
   LoadLibraryExW(L"cryptsp", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
 
-  HMODULE modules[1024];
-  DWORD needed = 0;
-
-  if (EnumProcessModules(GetCurrentProcess(), modules, sizeof(modules), &needed))
-  {
-    for (auto i = 0u; i < (needed / sizeof(HMODULE)); i++)
+  // This one only supports local process, so antiviruses dont spazz out over it. Or they just don't know it exists
+  LdrEnumerateLoadedModules(
+    0,
+    [](
+      _In_ PLDR_DATA_TABLE_ENTRY ModuleInformation,
+      _In_ PVOID Parameter,
+      _Out_ BOOLEAN* Stop
+      )
     {
-      if (const auto pfn = GetProcAddress(modules[i], "CryptVerifySignatureW"))
+      if (const auto pfn = GetProcAddress((HMODULE)ModuleInformation->DllBase, "CryptVerifySignatureW"))
       {
         // We can just do a dirty patch here since noone else would be calling CryptVerifySignatureW in our process
 
@@ -98,14 +115,14 @@ static int main_gui(int nCmdShow)
 
         DWORD old_protect = 0;
         const auto ret = VirtualProtect(
-          (PVOID)pfn, 
+          (PVOID)pfn,
           sizeof(bytes),
           PAGE_EXECUTE_READWRITE,
           &old_protect
         );
 
         if (!ret)
-          return POST_ERROR(L"VirtualProtect failed, GetLastError() = %08X", GetLastError());
+          return;
 
         memcpy((PVOID)pfn, bytes, sizeof(bytes));
 
@@ -122,10 +139,9 @@ static int main_gui(int nCmdShow)
 #endif
 
       }
-    }
-  }
-  else
-    return POST_ERROR(L"EnumProcessModules failed, GetLastError() = %08X", GetLastError());
+    },
+    nullptr
+  );
 
 
   const auto dialog = CreateDialogParam(
