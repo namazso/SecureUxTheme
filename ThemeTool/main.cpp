@@ -86,25 +86,46 @@ static int main_gui(int nCmdShow)
           0xB8, 0x01, 0x00, 0x00, 0x00,   // mov eax, 1
           0xC2, 0x18, 0x00                // ret 18
         };
-        const auto ret = WriteProcessMemory(
+
+        // Idiotic antiviruses think we're writing memory of some other process, so we have to do VirtualProtect here
+        /*const auto ret = WriteProcessMemory(
           GetCurrentProcess(),
           (PVOID)pfn,
           bytes,
           sizeof(bytes),
           nullptr
+        );*/
+
+        DWORD old_protect = 0;
+        const auto ret = VirtualProtect(
+          (PVOID)pfn, 
+          sizeof(bytes),
+          PAGE_EXECUTE_READWRITE,
+          &old_protect
+        );
+
+        if (!ret)
+          return POST_ERROR(L"VirtualProtect failed, GetLastError() = %08X", GetLastError());
+
+        memcpy((PVOID)pfn, bytes, sizeof(bytes));
+
+        // we don't care if this fails, the page will just stay RWX at most
+        VirtualProtect(
+          (PVOID)pfn,
+          sizeof(bytes),
+          old_protect,
+          &old_protect
         );
 
 #else
 #error ThemeTool only supports x86 builds
 #endif
 
-        if (!ret)
-          return POST_ERROR(L"EnumProcessModules failed, GetLastError() = %08X", GetLastError());
       }
     }
   }
   else
-    return POST_ERROR(L"WriteProcessMemory failed, GetLastError() = %08X", GetLastError());
+    return POST_ERROR(L"EnumProcessModules failed, GetLastError() = %08X", GetLastError());
 
 
   const auto dialog = CreateDialogParam(
