@@ -36,6 +36,21 @@
 // we use the builtin one so all our crt methods aren't resolved from ntdll
 #pragma comment(lib, "ntdll.lib")
 
+typedef VOID(NTAPI LDR_ENUM_CALLBACK)(
+  _In_ PLDR_DATA_TABLE_ENTRY ModuleInformation,
+  _In_ PVOID Parameter,
+  _Out_ BOOLEAN* Stop
+  );
+typedef LDR_ENUM_CALLBACK* PLDR_ENUM_CALLBACK;
+
+NTSTATUS
+NTAPI
+LdrEnumerateLoadedModules(
+  _In_ BOOLEAN ReservedFlag,
+  _In_ PLDR_ENUM_CALLBACK EnumProc,
+  _In_opt_ PVOID Context
+);
+
 HINSTANCE g_instance;
 CComPtr<IThemeManager2> g_pThemeManager2;
 
@@ -50,33 +65,44 @@ static int main_gui(int nCmdShow)
 #define POST_ERROR(...) utl::FormattedMessageBox(nullptr, _T("Error"), MB_OK | MB_ICONERROR, __VA_ARGS__)
 
   if (!InitCommonControlsEx(&iccex))
-    return POST_ERROR(L"InitCommonControlsEx failed, LastError = %08X", GetLastError());
+    return POST_ERROR(ESTRt(L"InitCommonControlsEx failed, LastError = %08X"), GetLastError());
 
   auto hr = CoInitialize(nullptr);
   if (FAILED(hr))
-    return POST_ERROR(L"CoInitialize failed, hr = %08X", hr);
+    return POST_ERROR(ESTRt(L"CoInitialize failed, hr = %08X"), hr);
 
   hr = g_pThemeManager2.CoCreateInstance(CLSID_ThemeManager2);
   if (FAILED(hr))
-    return POST_ERROR(L"CoCreateInstance failed, hr = %08X", hr);
+    return POST_ERROR(ESTRt(L"CoCreateInstance failed, hr = %08X"), hr);
 
   hr = g_pThemeManager2->Init(ThemeInitNoFlags);
   if (FAILED(hr))
-    return POST_ERROR(L"g_pThemeManager2->Init failed, hr = %08X", hr);
+    return POST_ERROR(ESTRt(L"g_pThemeManager2->Init failed, hr = %08X"), hr);
 
   // win8
-  LoadLibraryExW(L"advapi32", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+  LoadLibraryExW(ESTRt(L"advapi32"), nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
   // win10
-  LoadLibraryExW(L"cryptsp", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+  LoadLibraryExW(ESTRt(L"cryptsp"), nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
 
-  HMODULE modules[1024];
-  DWORD needed = 0;
+  const auto ntdll = GetModuleHandleW(ESTRt(L"ntdll"));
+  if (!ntdll)
+    return POST_ERROR(ESTRt(L"ntdll is null, GetLastError() = %08X"), GetLastError());
 
-  if (EnumProcessModules(GetCurrentProcess(), modules, sizeof(modules), &needed))
-  {
-    for (auto i = 0u; i < (needed / sizeof(HMODULE)); i++)
+  const auto pLdrEnumerateLoadedModules = (decltype(&LdrEnumerateLoadedModules))GetProcAddress(ntdll, ESTRt("LdrEnumerateLoadedModules"));
+  if (!pLdrEnumerateLoadedModules)
+    return POST_ERROR(ESTRt(L"pLdrEnumerateLoadedModules is null, GetLastError() = %08X"), GetLastError());
+
+  // This one only supports local process, so antiviruses dont spazz out over it. Or they just don't know it exists
+  pLdrEnumerateLoadedModules(
+    0,
+    [](
+      _In_ PLDR_DATA_TABLE_ENTRY ModuleInformation,
+      _In_ PVOID Parameter,
+      _Out_ BOOLEAN* Stop
+      )
     {
-      if (const auto pfn = GetProcAddress(modules[i], "CryptVerifySignatureW"))
+      *Stop = FALSE;
+      if (const auto pfn = GetProcAddress((HMODULE)ModuleInformation->DllBase, ESTRt("CryptVerifySignatureW")))
       {
         // We can just do a dirty patch here since noone else would be calling CryptVerifySignatureW in our process
 
@@ -86,25 +112,45 @@ static int main_gui(int nCmdShow)
           0xB8, 0x01, 0x00, 0x00, 0x00,   // mov eax, 1
           0xC2, 0x18, 0x00                // ret 18
         };
-        const auto ret = WriteProcessMemory(
+
+        // Idiotic antiviruses think we're writing memory of some other process, so we have to do VirtualProtect here
+        /*const auto ret = WriteProcessMemory(
           GetCurrentProcess(),
           (PVOID)pfn,
           bytes,
           sizeof(bytes),
           nullptr
+        );*/
+
+        DWORD old_protect = 0;
+        const auto ret = VirtualProtect(
+          (PVOID)pfn,
+          sizeof(bytes),
+          PAGE_EXECUTE_READWRITE,
+          &old_protect
+        );
+
+        if (!ret)
+          return;
+
+        memcpy((PVOID)pfn, bytes, sizeof(bytes));
+
+        // we don't care if this fails, the page will just stay RWX at most
+        VirtualProtect(
+          (PVOID)pfn,
+          sizeof(bytes),
+          old_protect,
+          &old_protect
         );
 
 #else
 #error ThemeTool only supports x86 builds
 #endif
 
-        if (!ret)
-          return POST_ERROR(L"EnumProcessModules failed, GetLastError() = %08X", GetLastError());
       }
-    }
-  }
-  else
-    return POST_ERROR(L"WriteProcessMemory failed, GetLastError() = %08X", GetLastError());
+    },
+    nullptr
+  );
 
 
   const auto dialog = CreateDialogParam(
@@ -140,30 +186,38 @@ int show_license()
     temp_path
   );
   if (ret > MAX_PATH || ret == 0)
-    return POST_ERROR(L"GetTempPathW failed: %08X", GetLastError());
+    return POST_ERROR(ESTRt(L"GetTempPathW failed: %08X"), GetLastError());
 
   ret = GetTempFileNameW(
     temp_path,
-    L"SecureUxTheme",
+    ESTRt(L"SecureUxTheme"),
     0,
     file_name
   );
   if (ret == 0)
-    return POST_ERROR(L"GetTempFileNameW failed: %08X", GetLastError());
+    return POST_ERROR(ESTRt(L"GetTempFileNameW failed: %08X"), GetLastError());
 
   const auto license = utl::get_resource(256, IDR_LICENSE);
   if(!license.first)
-    return POST_ERROR(L"utl::get_resource failed: %08X", GetLastError());
+    return POST_ERROR(ESTRt(L"utl::get_resource failed: %08X"), GetLastError());
 
-  wcscat_s(file_name, L".txt");
+  wcscat_s(file_name, ESTRt(L".txt"));
 
   ret = utl::write_file(file_name, license.first, license.second);
   if (ret)
-    return POST_ERROR(L"utl::write_file failed: %08X", ret);
+    return POST_ERROR(ESTRt(L"utl::write_file failed: %08X"), ret);
 
-  ret = (DWORD)ShellExecuteW(
+  const auto shell32 = LoadLibraryExW(ESTRt(L"shell32"), nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+  if (!shell32)
+    return POST_ERROR(ESTRt(L"shell32 is null. GetLastError() = %08X"), GetLastError());
+
+  const auto pShellExecuteW = decltype(&ShellExecuteW)(GetProcAddress(shell32, ESTRt("ShellExecuteW")));
+  if (!pShellExecuteW)
+    return POST_ERROR(ESTRt(L"pShellExecuteW is null. GetLastError() = %08X"), GetLastError());
+
+  ret = (DWORD)pShellExecuteW(
     nullptr,
-    L"edit",
+    ESTRt(L"edit"),
     file_name,
     nullptr,
     nullptr,
@@ -171,7 +225,7 @@ int show_license()
   );
 
   if(ret <= 32)
-    return POST_ERROR(L"ShellExecuteW failed: %08X", ret);
+    return POST_ERROR(ESTRt(L"ShellExecuteW failed: %08X"), ret);
 
   return 0;
 }
@@ -190,9 +244,9 @@ int APIENTRY wWinMain(
 
   const auto license_read = IDYES == MessageBoxW(
     nullptr,
-    L"Have you read and agree to the license?\r\n"
-    L"Answering \"No\" will open the license text.",
-    L"License",
+    ESTRt(L"Have you read and agree to the license?\r\n"
+    L"Answering \"No\" will open the license text."),
+    ESTRt(L"License"),
     MB_YESNO
   );
 

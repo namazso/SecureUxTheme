@@ -64,6 +64,9 @@
     <ClInclude Include="utl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="stringencrypt.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\bin\Release\Win32\SecureUxTheme.dll" />

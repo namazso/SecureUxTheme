@@ -36,3 +36,5 @@
 #include <vector>
 #include <string_view>
 #include <random>
+
+#include "stringencrypt.h"

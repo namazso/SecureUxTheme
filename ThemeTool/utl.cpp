@@ -98,8 +98,8 @@ static USHORT get_native_architecture()
   {
     typedef BOOL(WINAPI* LPFN_ISWOW64PROCESS2) (HANDLE, PUSHORT, PUSHORT);
 
-    const auto kernel32 = GetModuleHandleW(L"kernel32");
-    const auto pIsWow64Process2 = kernel32 ? (LPFN_ISWOW64PROCESS2)GetProcAddress(kernel32, "IsWow64Process2") : nullptr;
+    const auto kernel32 = GetModuleHandleW(ESTRt(L"kernel32"));
+    const auto pIsWow64Process2 = kernel32 ? (LPFN_ISWOW64PROCESS2)GetProcAddress(kernel32, ESTRt("IsWow64Process2")) : nullptr;
     USHORT ProcessMachine = 0;
     USHORT NativeMachine = 0;
 
@@ -397,7 +397,7 @@ DWORD utl::get_KnownDllPath(std::wstring& wstr)
 {
   wstr.clear();
   DWORD error = NO_ERROR;
-  auto attr = make_object_attributes(L"\\KnownDlls\\KnownDllPath");
+  auto attr = make_object_attributes(ESTRt(L"\\KnownDlls\\KnownDllPath"));
   HANDLE link = nullptr;
   auto status = NtOpenSymbolicLinkObject(&link, GENERIC_READ, &attr);
   if (NT_SUCCESS(status))
