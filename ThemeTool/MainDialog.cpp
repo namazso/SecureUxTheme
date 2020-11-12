@@ -536,6 +536,14 @@ void MainDialog::UpdatePatcherStateDisplay()
 MainDialog::MainDialog(HWND hDlg, void*)
   : _hwnd(hDlg)
 {
+  const wchar_t* version;
+  if constexpr ((CI_VERSION "")[0] == 0)
+    version = L"(unknown)";
+  else
+    version = L"" CI_VERSION;
+
+  Log(ESTRt(L"Version %s"), version);
+
   ULONG major = 0, minor = 0, build = 0;
   RtlGetNtVersionNumbers(&major, &minor, &build);
   Log(ESTRt(L"Running on %d.%d.%d flavor %01X"), major, minor, build & 0xFFFF, build >> 28);

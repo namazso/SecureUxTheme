@@ -26,6 +26,9 @@ jobs:
             Echo ("::set-output name=version_major::" + $Matches[1]);
             Echo ("::set-output name=version_minor::" + $Matches[2]);
             Echo ("::set-output name=version_patch::" + $Matches[3]);
+            $Env:CI_VERSION = $Matches[0];
+        } Else {
+            $Env:CI_VERSION = $Env:GITHUB_SHA;
         }
 
     - name: setup-msbuild
