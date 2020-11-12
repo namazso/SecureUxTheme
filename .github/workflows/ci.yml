@@ -22,14 +22,23 @@ jobs:
       id: checktag
       run: |
         If($Env:GITHUB_REF -match "v([0-9]*)\.([0-9]*)\.([0-9]*)") {
-            Echo ("::set-output name=version::" + $Matches[0]);
-            Echo ("::set-output name=version_major::" + $Matches[1]);
-            Echo ("::set-output name=version_minor::" + $Matches[2]);
-            Echo ("::set-output name=version_patch::" + $Matches[3]);
-            $Env:CI_VERSION = $Matches[0];
+            $IsRelease = "yes";
+            $Version = $Matches[0];
+            $VersionMinor = $Matches[1];
+            $VersionMajor = $Matches[2];
+            $VersionPatch = $Matches[3];
         } Else {
-            $Env:CI_VERSION = $Env:GITHUB_SHA;
+            $IsRelease = "no";
+            $Version = $Env:GITHUB_SHA;
+            $VersionMinor = 0;
+            $VersionMajor = 0;
+            $VersionPatch = 0;
         }
+        Echo ("::set-output name=is_release::" + $IsRelease);
+        Echo ("::set-output name=version::" + $Version);
+        Echo ("::set-output name=version_major::" + $VersionMajor);
+        Echo ("::set-output name=version_minor::" + $VersionMinor);
+        Echo ("::set-output name=version_patch::" + $VersionPatch);
 
     - name: setup-msbuild
       uses: microsoft/setup-msbuild@v1
@@ -37,18 +46,18 @@ jobs:
     - name: Build Solution (x64)
       run: |
         cd ${{ github.workspace }}
-        msbuild "-property:Configuration=Release;Platform=x64" SecureUxTheme.sln
+        msbuild "-property:Configuration=Release;Platform=x64;CI_VERSION=${{ steps.checktag.outputs.version }}" SecureUxTheme.sln
 
     - name: Build Solution (ARM64)
       run: |
         cd ${{ github.workspace }}
-        msbuild "-property:Configuration=Release;Platform=ARM64" SecureUxTheme.sln
+        msbuild "-property:Configuration=Release;Platform=ARM64;CI_VERSION=${{ steps.checktag.outputs.version }}" SecureUxTheme.sln
         
       # Win32 built last
     - name: Build Solution (Win32)
       run: |
         cd ${{ github.workspace }}
-        msbuild "-property:Configuration=Release;Platform=Win32" SecureUxTheme.sln
+        msbuild "-property:Configuration=Release;Platform=Win32;CI_VERSION=${{ steps.checktag.outputs.version }}" SecureUxTheme.sln
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v2
@@ -62,7 +71,7 @@ jobs:
           .\bin\Release\Win32\ThemeTool.pdb
 
     - name: Create release
-      if: ${{ steps.checktag.outputs.version != '' }}
+      if: ${{ steps.checktag.outputs.is_release == 'yes' }}
       id: create_release
       uses: actions/create-release@v1
       env:
@@ -74,7 +83,7 @@ jobs:
         prerelease: true
 
     - name: Upload release asset
-      if: ${{ steps.checktag.outputs.version != '' }}
+      if: ${{ steps.checktag.outputs.is_release == 'yes' }}
       id: upload-release-asset 
       uses: actions/upload-release-asset@v1
       env:
