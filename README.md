@@ -1,6 +1,6 @@
 # SecureUxTheme
 
-![License](https://img.shields.io/github/license/namazso/SecureUxTheme) ![Downloads](https://img.shields.io/github/downloads/namazso/SecureUxTheme/total) ![GitHub Version](https://img.shields.io/github/v/release/namazso/OpenHashTab)
+![License](https://img.shields.io/github/license/namazso/SecureUxTheme) ![Downloads](https://img.shields.io/github/downloads/namazso/SecureUxTheme/total) ![GitHub Version](https://img.shields.io/github/v/release/namazso/SecureUxTheme)
 
 ## About
 
