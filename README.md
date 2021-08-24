@@ -65,7 +65,7 @@ Regardless, here's a cool theme for illustration:
 
 ## Where to get themes
 
-I recommend [DeviantArt](https://www.deviantart.com/tag/windows10themes) for finding themes, although it is a bit noisy. Alternatives are [7themes.su](https://7themes.su/) which is much more organized (but be wary of fake adware download buttons! use the one that says Яндекс.Диск). Also, you can just search for themes with your favorite search engine. Make sure that the theme you're about to apply is compatible with your windows version.
+I recommend [DeviantArt](https://www.deviantart.com/tag/windows10themes) for finding themes, although it is a bit noisy. Alternatives are [7themes.su](https://7themes.su/) which is much more organized (but be ware of fake adware download buttons! use the one that says Яндекс.Диск). Also, you can just search for themes with your favorite search engine. Make sure that the theme you're about to apply is compatible with your windows version.
 
 ## Donations
 
