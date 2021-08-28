@@ -16,12 +16,12 @@ SecureUxTheme is a software that removes signature verification of styles from W
 
 ## Limitations
 
-Styles must still have a format-wise valid signature appended, it is just not verified. A tool for fixing styles without or with invalid one is included in the installer.
+Styles must still have a format-wise valid signature appended, it is just not verified. For this reason themes need to be applied with the tool, rather than in Personalization / Themes.
 
 ## Operating System Support\*
 
 * Windows 8.1
-* Windows 10 (tested: 1507, 1607, 1809, 1903, 1909, 2004, 20H2, 21H1)
+* Windows 10 (tested: 1507, 1607, 1809, 1903, 1909, 2004, 20H2, 21H1, 20348.*)
 * Future versions\*\*
 
 \* Windows 7 or older will never be supported due to the way themes are implemented.
@@ -36,7 +36,11 @@ Styles must still have a format-wise valid signature appended, it is just not ve
 
 ## Download is MALWARE???
 
-Some silly antiviruses tend to flag the installer as malware, because it's elevated and unsigned (this method [clearly](https://www.securityweek.com/use-fake-code-signing-certificates-malware-surges) [works](https://www.zdnet.com/article/hackers-are-selling-legitimate-code-signing-certificates-to-evade-malware-detection/) [btw](http://signedmalware.org/)). I'm submitting all releases before release to Microsoft for analysis if they're detected, but I can't guarantee the same for all the other AVs. Since I'm not planning to have my IRL name plastered everywhere, I won't be getting a signing certificate either. However if you do have one and are willing help signing, please contact me.
+Some silly antiviruses tend to flag the tool as malware, because it's unsigned (this method of detection [clearly](https://www.securityweek.com/use-fake-code-signing-certificates-malware-surges) [works](https://www.zdnet.com/article/hackers-are-selling-legitimate-code-signing-certificates-to-evade-malware-detection/) [btw](http://signedmalware.org/)). I'm submitting all releases before release to Microsoft for analysis if they're detected by Defender, but I can't guarantee the same for all the other AVs. If you have a signing certificate and are willing help signing, please contact me.
+
+### Garbage Antiviruses
+
+Some antiviruses might not detect `ThemeTool.exe` but detect the installed dll (`system32\SecureUxTheme.dll`) and delete it. If this happens your computer will be stuck at the login screen. See the FAQ entry for fixing this, and I'd recommend getting rid of the garbage AV that caused this.
 
 ### But I still don't trust it.
 
