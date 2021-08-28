@@ -175,61 +175,6 @@ static int main_gui(int nCmdShow)
   return (int)msg.wParam;
 }
 
-int show_license()
-{
-  wchar_t file_name[MAX_PATH];
-
-  //  Gets the temp path env string (no guarantee it's a valid path).
-  wchar_t temp_path[MAX_PATH];
-  auto ret = GetTempPathW(
-    MAX_PATH,
-    temp_path
-  );
-  if (ret > MAX_PATH || ret == 0)
-    return POST_ERROR(ESTRt(L"GetTempPathW failed: %08X"), GetLastError());
-
-  ret = GetTempFileNameW(
-    temp_path,
-    ESTRt(L"SecureUxTheme"),
-    0,
-    file_name
-  );
-  if (ret == 0)
-    return POST_ERROR(ESTRt(L"GetTempFileNameW failed: %08X"), GetLastError());
-
-  const auto license = utl::get_resource(256, IDR_LICENSE);
-  if(!license.first)
-    return POST_ERROR(ESTRt(L"utl::get_resource failed: %08X"), GetLastError());
-
-  wcscat_s(file_name, ESTRt(L".txt"));
-
-  ret = utl::write_file(file_name, license.first, license.second);
-  if (ret)
-    return POST_ERROR(ESTRt(L"utl::write_file failed: %08X"), ret);
-
-  const auto shell32 = LoadLibraryExW(ESTRt(L"shell32"), nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
-  if (!shell32)
-    return POST_ERROR(ESTRt(L"shell32 is null. GetLastError() = %08X"), GetLastError());
-
-  const auto pShellExecuteW = decltype(&ShellExecuteW)(GetProcAddress(shell32, ESTRt("ShellExecuteW")));
-  if (!pShellExecuteW)
-    return POST_ERROR(ESTRt(L"pShellExecuteW is null. GetLastError() = %08X"), GetLastError());
-
-  ret = (DWORD)pShellExecuteW(
-    nullptr,
-    ESTRt(L"edit"),
-    file_name,
-    nullptr,
-    nullptr,
-    SW_SHOWNORMAL
-  );
-
-  if(ret <= 32)
-    return POST_ERROR(ESTRt(L"ShellExecuteW failed: %08X"), ret);
-
-  return 0;
-}
-
 int APIENTRY wWinMain(
   _In_ HINSTANCE     hInstance,
   _In_opt_ HINSTANCE hPrevInstance,
@@ -242,13 +187,12 @@ int APIENTRY wWinMain(
 
   g_instance = hInstance;
 
-  const auto license_read = IDYES == MessageBoxW(
+  MessageBoxW(
     nullptr,
-    ESTRt(L"Have you read and agree to the license?\r\n"
-    L"Answering \"No\" will open the license text."),
-    ESTRt(L"License"),
-    MB_YESNO
+    ESTRt(L"This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details."),
+    ESTRt(L"Warranty disclaimer"),
+    MB_OK | MB_ICONWARNING
   );
 
-  return license_read ? main_gui(nCmdShow) : show_license();
+  return main_gui(nCmdShow);
 }

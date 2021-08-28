@@ -47,8 +47,6 @@ IDR_SECUREUXTHEME_DLL_ARM64 256                     "../bin/Release/ARM64/Secure
 
 #endif
 
-IDR_LICENSE             256                     "../LICENSE"
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
