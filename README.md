@@ -42,6 +42,8 @@ Some silly antiviruses tend to flag the tool as malware, because it's unsigned (
 
 Some antiviruses might not detect `ThemeTool.exe` but detect the installed dll (`system32\SecureUxTheme.dll`) and delete it. If this happens your computer will be stuck at the login screen. See the FAQ entry for fixing this, and I'd recommend getting rid of the garbage AV that caused this.
 
+**Because of this, after install you might want to add SecureUxTheme.dll to the exclusions of your antivirus, so it doesn't randomly break your install.**
+
 ### But I still don't trust it.
 
 Compile it yourself.
