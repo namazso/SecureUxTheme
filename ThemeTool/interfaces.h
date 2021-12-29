@@ -17,10 +17,10 @@
 
 enum THEME_MANAGER_INITIALIZATION_FLAGS : unsigned
 {
-  ThemeInitNoFlags = 0,
-  ThemeInitFlagUnk0 = 1 << 0,
-  ThemeInitFlagUnk1 = 1 << 1,
-  ThemeInitFlagUnk2 = 1 << 2,
+  ThemeInitNoFlags            = 0,
+  ThemeInitCurrentThemeOnly   = 1 << 0,
+  ThemeInitFlagUnk1           = 1 << 1,
+  ThemeInitFlagUnk2           = 1 << 2,
 };
 
 enum THEME_APPLY_FLAGS
@@ -30,7 +30,7 @@ enum THEME_APPLY_FLAGS
   THEME_APPLY_FLAG_IGNORE_DESKTOP_ICONS = 1 << 2,
   THEME_APPLY_FLAG_IGNORE_COLOR         = 1 << 3,
   THEME_APPLY_FLAG_IGNORE_SOUND         = 1 << 4,
-  // 1 << 5 seems to be unused
+  THEME_APPLY_FLAG_IGNORE_SCREENSAVER   = 1 << 5,
   THEME_APPLY_FLAG_UNKNOWN              = 1 << 6, // something about window metrics
   THEME_APPLY_FLAG_UNKNOWN2             = 1 << 7,
   THEME_APPLY_FLAG_NO_HOURGLASS         = 1 << 8
@@ -38,8 +38,10 @@ enum THEME_APPLY_FLAGS
 
 enum THEMEPACK_FLAGS
 {
-  THEMEPACK_FLAG_UNKNOWN = 3, // setting this seems to supress hourglass
-  THEMEPACK_FLAG_UNKNOWN2 = 4 // something about RSS
+  THEMEPACK_FLAG_UNKNOWN1     = 1 << 0, // setting this seems to supress hourglass
+  THEMEPACK_FLAG_UNKNOWN2     = 1 << 1, // setting this seems to supress hourglass
+  THEMEPACK_FLAG_SILENT       = 1 << 2, // hides all dialogs and prevents sound
+  THEMEPACK_FLAG_ROAMED       = 1 << 3, // something about roaming
 };
 
 enum DESKTOP_WALLPAPER_POSITION {};
