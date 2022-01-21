@@ -1,4 +1,4 @@
-name: release
+name: ci
 
 on:
   push:
@@ -8,16 +8,15 @@ on:
       - master
 
 jobs:
-  build:
-    name: build-windows
+  build-and-release:
     runs-on: windows-latest
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
       with:
           submodules: recursive
-          
+
     - name: Figure out if we're running for a tag
       id: checktag
       run: |
@@ -40,56 +39,51 @@ jobs:
         Echo ("::set-output name=version_minor::" + $VersionMinor);
         Echo ("::set-output name=version_patch::" + $VersionPatch);
 
-    - name: setup-msbuild
-      uses: microsoft/setup-msbuild@v1
-      
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v1.1
+
     - name: Build Solution (x64)
       run: |
         cd ${{ github.workspace }}
         msbuild "-property:Configuration=Release;Platform=x64;CI_VERSION=${{ steps.checktag.outputs.version }}" SecureUxTheme.sln
-
     - name: Build Solution (ARM64)
       run: |
         cd ${{ github.workspace }}
         msbuild "-property:Configuration=Release;Platform=ARM64;CI_VERSION=${{ steps.checktag.outputs.version }}" SecureUxTheme.sln
-        
       # Win32 built last
     - name: Build Solution (Win32)
       run: |
         cd ${{ github.workspace }}
         msbuild "-property:Configuration=Release;Platform=Win32;CI_VERSION=${{ steps.checktag.outputs.version }}" SecureUxTheme.sln
 
-    - name: Upload artifacts
+    - name: Upload SecureUxTheme to Artifacts (x64)
       uses: actions/upload-artifact@v2
       with:
-        name: binaries
+        name: SecureUxTheme (x64)
+        path: .\bin\Release\x64\SecureUxTheme.dll
+    - name: Upload SecureUxTheme to Artifacts (ARM64)
+      uses: actions/upload-artifact@v2
+      with:
+        name: SecureUxTheme (ARM64)
+        path: .\bin\Release\ARM64\SecureUxTheme.dll
+    - name: Upload SecureUxTheme to Artifacts (Win32)
+      uses: actions/upload-artifact@v2
+      with:
+        name: SecureUxTheme (Win32)
+        path: .\bin\Release\Win32\SecureUxTheme.dll
+    - name: Upload ThemeTool to Artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: ThemeTool
         path: |
-          .\bin\Release\Win32\SecureUxTheme.dll
-          .\bin\Release\x64\SecureUxTheme.dll
-          .\bin\Release\ARM64\SecureUxTheme.dll
           .\bin\Release\Win32\ThemeTool.exe
           .\bin\Release\Win32\ThemeTool.pdb
 
-    - name: Create release
+    - name: Release
+      uses: softprops/action-gh-release@v1
       if: ${{ steps.checktag.outputs.is_release == 'yes' }}
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        draft: false
+        files: |
+          .\bin\Release\Win32\ThemeTool.exe
+        name: Release ${{ steps.checktag.outputs.version }}
         prerelease: true
-
-    - name: Upload release asset
-      if: ${{ steps.checktag.outputs.is_release == 'yes' }}
-      id: upload-release-asset 
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-        asset_path: .\bin\Release\Win32\ThemeTool.exe
-        asset_name: ThemeTool.exe
-        asset_content_type: application/octet-stream
