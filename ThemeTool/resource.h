@@ -11,6 +11,7 @@
 #define IDC_CHECK_IGNORE_DESKTOP_ICONS  1004
 #define IDC_CHECK_IGNORE_COLOR          1005
 #define IDC_CHECK_IGNORE_SOUND          1006
+#define IDC_CHECK_IGNORE_SCREENSAVER    1007
 #define IDC_STATIC_STYLE                1010
 #define IDC_BUTTON_APPLY                1012
 #define IDC_LIST                        1013
