@@ -17,6 +17,8 @@
 
 namespace utl
 {
+  HINSTANCE get_instance();
+
   std::pair<const void*, size_t> get_resource(WORD type, WORD id);
   bool is_elevated();
 

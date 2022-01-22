@@ -270,6 +270,9 @@
     <None Include="..\bin\Release\x64\SecureUxTheme.dll" />
     <None Include="..\LICENSE" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="icon.ico" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

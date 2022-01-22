@@ -547,6 +547,17 @@ MainDialog::MainDialog(HWND hDlg, void*)
 
   Log(ESTRt(L"Session user: %s Process user: %s"), _session_user.second.c_str(), _process_user.second.c_str());
 
+  auto hicon = (HICON)LoadImageW(
+    utl::get_instance(),
+    MAKEINTRESOURCEW(IDI_ICON1),
+    IMAGE_ICON,
+    0,
+    0,
+    LR_DEFAULTCOLOR | LR_DEFAULTSIZE
+  );
+  SendMessageW(_hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hicon);
+  SendMessageW(_hwnd, WM_SETICON, ICON_BIG, (LPARAM)hicon);
+
   Static_SetText(_hwnd_STATIC_ASADMIN, PatcherStateText(_is_elevated ? PatcherState::Yes : PatcherState::No));
 
   Button_SetCheck(_hwnd_CHECK_COLORS, BST_CHECKED);

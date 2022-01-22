@@ -49,7 +49,7 @@ NtQuerySymbolicLinkObject(
 EXTERN_C_END
 
 // Last time instance wasn't just your own PE header's pointer was in 16 bit days.
-static HINSTANCE get_instance() { return (HINSTANCE)&__ImageBase; }
+HINSTANCE utl::get_instance() { return (HINSTANCE)&__ImageBase; }
 
 static OBJECT_ATTRIBUTES make_object_attributes(
   const wchar_t* ObjectName,
