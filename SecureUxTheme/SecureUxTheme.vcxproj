@@ -36,7 +36,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <OutDir>$(SolutionDir)bin\$(Configuration)\$(Platform)\</OutDir>
     <GenerateManifest>false</GenerateManifest>
     <UseDebugLibraries>true</UseDebugLibraries>
@@ -45,7 +45,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <OutDir>$(SolutionDir)bin\$(Configuration)\$(Platform)\</OutDir>
     <GenerateManifest>false</GenerateManifest>
     <UseDebugLibraries>true</UseDebugLibraries>
@@ -54,7 +54,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <OutDir>$(SolutionDir)bin\$(Configuration)\$(Platform)\</OutDir>
     <GenerateManifest>false</GenerateManifest>
     <UseDebugLibraries>true</UseDebugLibraries>
@@ -63,7 +63,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <OutDir>$(SolutionDir)bin\$(Configuration)\$(Platform)\</OutDir>
     <GenerateManifest>false</GenerateManifest>
     <UseDebugLibraries>false</UseDebugLibraries>
@@ -73,7 +73,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <OutDir>$(SolutionDir)bin\$(Configuration)\$(Platform)\</OutDir>
     <GenerateManifest>false</GenerateManifest>
     <UseDebugLibraries>false</UseDebugLibraries>
@@ -83,7 +83,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <OutDir>$(SolutionDir)bin\$(Configuration)\$(Platform)\</OutDir>
     <GenerateManifest>false</GenerateManifest>
     <UseDebugLibraries>false</UseDebugLibraries>
