@@ -653,6 +653,13 @@ void MainDialog::SelectTheme(int id)
   {
     Static_SetText(_hwnd_STATIC_STYLE, _T(""));
     Log(ESTRt(L"SelectTheme: pTheme->GetVisualStyle failed with %08X"), result);
+    if ((uint32_t)result == (uint32_t)0x80070002)
+      utl::FormattedMessageBox(
+        _hwnd,
+        ESTRt(L"Warning"),
+        MB_OK | MB_ICONWARNING,
+        ESTRt(L"Getting visual style path failed!\n\nThis is often caused by incorrectly installed themes. Please make sure you copied all files and folders from the theme distribution before opening an issue.")
+      );
     return;
   }
 
