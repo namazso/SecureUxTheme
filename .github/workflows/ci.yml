@@ -25,18 +25,12 @@ jobs:
       uses: microsoft/setup-msbuild@v1.1
 
     - name: Build Solution (x64)
-      run: |
-        cd ${{ github.workspace }}
-        msbuild "-property:Configuration=Release;Platform=x64;CI_VERSION=${{ steps.get_version.outputs.version }}" SecureUxTheme.sln
+      run: msbuild "-p:Configuration=Release;Platform=x64;CI_VERSION=${{ steps.get_version.outputs.version }}" SecureUxTheme.sln
     - name: Build Solution (ARM64)
-      run: |
-        cd ${{ github.workspace }}
-        msbuild "-property:Configuration=Release;Platform=ARM64;CI_VERSION=${{ steps.get_version.outputs.version }}" SecureUxTheme.sln
+      run: msbuild "-p:Configuration=Release;Platform=ARM64;CI_VERSION=${{ steps.get_version.outputs.version }}" SecureUxTheme.sln
       # Win32 built last
     - name: Build Solution (Win32)
-      run: |
-        cd ${{ github.workspace }}
-        msbuild "-property:Configuration=Release;Platform=Win32;CI_VERSION=${{ steps.get_version.outputs.version }}" SecureUxTheme.sln
+      run: msbuild "-p:Configuration=Release;Platform=Win32;CI_VERSION=${{ steps.get_version.outputs.version }}" SecureUxTheme.sln
 
     - name: Upload SecureUxTheme to Artifacts (x64)
       uses: actions/upload-artifact@v3
