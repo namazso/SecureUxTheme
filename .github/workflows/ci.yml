@@ -8,7 +8,7 @@ on:
       - master
 
 jobs:
-  build-and-release:
+  build:
     runs-on: windows-latest
 
     steps:
@@ -17,27 +17,9 @@ jobs:
       with:
           submodules: recursive
 
-    - name: Figure out if we're running for a tag
-      id: checktag
-      run: |
-        If($Env:GITHUB_REF -match "v([0-9]*)\.([0-9]*)\.([0-9]*)") {
-            $IsRelease = "yes";
-            $Version = $Matches[0];
-            $VersionMinor = $Matches[1];
-            $VersionMajor = $Matches[2];
-            $VersionPatch = $Matches[3];
-        } Else {
-            $IsRelease = "no";
-            $Version = $Env:GITHUB_SHA;
-            $VersionMinor = 0;
-            $VersionMajor = 0;
-            $VersionPatch = 0;
-        }
-        Echo ("::set-output name=is_release::" + $IsRelease);
-        Echo ("::set-output name=version::" + $Version);
-        Echo ("::set-output name=version_major::" + $VersionMajor);
-        Echo ("::set-output name=version_minor::" + $VersionMinor);
-        Echo ("::set-output name=version_patch::" + $VersionPatch);
+    - name: Get tag version
+      id: get_version
+      uses: battila7/get-version-action@v2
 
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v1.1
@@ -45,16 +27,16 @@ jobs:
     - name: Build Solution (x64)
       run: |
         cd ${{ github.workspace }}
-        msbuild "-property:Configuration=Release;Platform=x64;CI_VERSION=${{ steps.checktag.outputs.version }}" SecureUxTheme.sln
+        msbuild "-property:Configuration=Release;Platform=x64;CI_VERSION=${{ steps.get_version.outputs.version }}" SecureUxTheme.sln
     - name: Build Solution (ARM64)
       run: |
         cd ${{ github.workspace }}
-        msbuild "-property:Configuration=Release;Platform=ARM64;CI_VERSION=${{ steps.checktag.outputs.version }}" SecureUxTheme.sln
+        msbuild "-property:Configuration=Release;Platform=ARM64;CI_VERSION=${{ steps.get_version.outputs.version }}" SecureUxTheme.sln
       # Win32 built last
     - name: Build Solution (Win32)
       run: |
         cd ${{ github.workspace }}
-        msbuild "-property:Configuration=Release;Platform=Win32;CI_VERSION=${{ steps.checktag.outputs.version }}" SecureUxTheme.sln
+        msbuild "-property:Configuration=Release;Platform=Win32;CI_VERSION=${{ steps.get_version.outputs.version }}" SecureUxTheme.sln
 
     - name: Upload SecureUxTheme to Artifacts (x64)
       uses: actions/upload-artifact@v3
@@ -79,11 +61,21 @@ jobs:
           .\bin\Release\Win32\ThemeTool.exe
           .\bin\Release\Win32\ThemeTool.pdb
 
-    - name: Release
-      uses: softprops/action-gh-release@v1
-      if: ${{ steps.checktag.outputs.is_release == 'yes' }}
-      with:
-        files: |
-          .\bin\Release\Win32\ThemeTool.exe
-        name: Release ${{ steps.checktag.outputs.version }}
-        prerelease: true
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: ThemeTool
+      - name: Get tag version
+        id: get_version
+        uses: battila7/get-version-action@v2
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ThemeTool.exe
+          name: Release ${{ steps.get_version.outputs.version }}
+          prerelease: true
