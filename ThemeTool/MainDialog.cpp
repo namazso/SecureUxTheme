@@ -935,10 +935,14 @@ INT_PTR MainDialog::DlgProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
   case WM_NOTIFY:
     {
     const auto nmhdr = (LPNMHDR)lParam;
-    if (nmhdr->idFrom == IDC_LIST && nmhdr->code == NM_CLICK)
+    if (nmhdr->idFrom == IDC_LIST && nmhdr->code == LVN_ITEMCHANGED)
     {
-      SelectTheme(CurrentSelection());
-      return TRUE;
+      const auto pnmv = (LPNMLISTVIEW)lParam;
+      if (pnmv->uNewState & LVIS_SELECTED)
+      {
+        SelectTheme(pnmv->iItem);
+        return TRUE;
+      }
     }
     }
     return FALSE;
