@@ -859,6 +859,9 @@ void MainDialog::PatchTheme(int id)
       _is_elevated ? ESTRt(L"Consider sending a bug report") : ESTRt(L"Try running the program as Administrator")
     );
   }
+
+  // reload theme details (patch status)
+  SelectTheme(id);
 }
 
 int MainDialog::CurrentSelection()
