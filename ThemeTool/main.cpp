@@ -98,6 +98,8 @@ int APIENTRY wWinMain(
   const auto hr = themetool_init();
   if ((uint32_t)hr == (uint32_t)0x80040154)
     return POST_ERROR(ESTRt(L"themetool_init failed, hr = %08X.\n\nThis is usually caused by corrupted files. Make sure you don't have any other theme patcher installed, and check for corrupted files with sfc /scannow"), hr);
+  if (FAILED(hr))
+    return POST_ERROR(ESTRt(L"themetool_init failed, hr = %08X.\n\n%s"), hr, utl::ErrorToString(hr).c_str());
 
   const auto dialog = CreateDialogParam(
     instance,
