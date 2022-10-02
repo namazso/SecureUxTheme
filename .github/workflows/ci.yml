@@ -35,21 +35,11 @@ jobs:
     - name: Build Solution (Win32)
       run: msbuild "-p:Configuration=Release;Platform=Win32;CI_VERSION=${{ steps.get_version.outputs.version }}" SecureUxTheme.sln
 
-    - name: Upload SecureUxTheme to Artifacts (x64)
+    - name: Upload everything to Artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: SecureUxTheme (x64)
-        path: .\bin\Release\x64\SecureUxTheme.dll
-    - name: Upload SecureUxTheme to Artifacts (ARM64)
-      uses: actions/upload-artifact@v3
-      with:
-        name: SecureUxTheme (ARM64)
-        path: .\bin\Release\ARM64\SecureUxTheme.dll
-    - name: Upload SecureUxTheme to Artifacts (Win32)
-      uses: actions/upload-artifact@v3
-      with:
-        name: SecureUxTheme (Win32)
-        path: .\bin\Release\Win32\SecureUxTheme.dll
+        name: Everything
+        path: .\bin\Release\**\*.*
     - name: Upload ThemeTool to Artifacts
       uses: actions/upload-artifact@v3
       with:
