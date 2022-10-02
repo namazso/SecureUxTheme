@@ -149,6 +149,12 @@ HRESULT themetool_theme_get_display_name(ITheme* theme, LPWSTR out, SIZE_T cch);
 HRESULT themetool_theme_get_vs_path(ITheme* theme, LPWSTR out, SIZE_T cch);
 
 /**
+ * @brief Release (free) a theme pointer.
+ * @param theme Opaque theme pointer
+ */
+void themetool_theme_release(ITheme* theme);
+
+/**
  * @brief Check if a signature is correct (but not if it's valid).
  * @param path Path to file
  * @return A HRESULT from Windows

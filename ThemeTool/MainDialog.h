@@ -69,10 +69,6 @@ class MainDialog
   std::list<std::wstring> _names;
 
   void Log(const wchar_t* fmt, ...);
-
-  static bool IsInstalledForExecutable(const wchar_t* executable);
-  static DWORD InstallForExecutable(const wchar_t* executable);
-  static DWORD UninstallForExecutable(const wchar_t* executable);
   
   void Uninstall();
   void Install();

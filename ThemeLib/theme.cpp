@@ -320,3 +320,8 @@ HRESULT themetool_theme_get_vs_path(ITheme* theme, LPWSTR out, SIZE_T cch)
   std::copy_n(str.begin(), str.size(), out);
   return hr;
 }
+
+void themetool_theme_release(ITheme* theme)
+{
+  theme->Release();
+}
