@@ -1,5 +1,5 @@
 /* SecureUxTheme - A secure boot compatible in-memory UxTheme patcher
- * Copyright (C) 2022  namazso
+ * Copyright (C) 2022  namazso <admin@namazso.eu>
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
