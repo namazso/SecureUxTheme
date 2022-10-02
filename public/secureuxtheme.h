@@ -81,21 +81,21 @@ ULONG secureuxtheme_get_state_flags(void);
 /**
  * @brief Install SecureUxTheme.
  * @param install_flags Install flags
- * @return A HRESULT, either from Windows or custom
+ * @return A HRESULT
  */
 HRESULT secureuxtheme_install(ULONG install_flags);
 
 /**
  * @brief Install SecureUxTheme for a specific executable.
  * @param executable Executable name
- * @return A HRESULT, either from Windows or custom
+ * @return A HRESULT
  */
 HRESULT secureuxtheme_hook_add(LPCWSTR executable);
 
 /**
  * @brief Uninstall SecureUxTheme for a specific executable.
  * @param executable Executable name
- * @return A HRESULT, either from Windows or custom
+ * @return A HRESULT
  */
 HRESULT secureuxtheme_hook_remove(LPCWSTR executable);
 
@@ -108,7 +108,7 @@ BOOLEAN secureuxtheme_hook_test(LPCWSTR executable);
 
 /**
  * @brief Uninstall all hooks and delete the dll.
- * @return A HRESULT, either from Windows or custom
+ * @return A HRESULT
  */
 HRESULT secureuxtheme_uninstall(void);
 

@@ -27,7 +27,7 @@ typedef struct IThemeManager2 IThemeManager2;
 
 /**
  * @brief Initialize themeing features.
- * @return A HRESULT, either from Windows or custom
+ * @return A HRESULT
  * @warning This patches CryptVerifySignatureW in the process, which means any signature verification will pass.
  */
 HRESULT themetool_init(void);
@@ -43,7 +43,7 @@ IThemeManager2* themetool_get_manager(void);
 /**
  * @brief Get count of themes, according to Windows.
  * @param count Count of themes
- * @return A HRESULT from Windows
+ * @return A HRESULT
  */
 HRESULT themetool_get_theme_count(PULONG count);
 
@@ -51,7 +51,7 @@ HRESULT themetool_get_theme_count(PULONG count);
  * @brief Get a specific theme.
  * @param idx Index of theme to get
  * @param theme Output opaque pointer
- * @return A HRESULT from Windows
+ * @return A HRESULT
  * @warning This is intentionally an opaque pointer, as it's your job to keep the interface up to date if you wish to
  *          use it. Use the other exported functions for management with guarantees.
  */
@@ -118,7 +118,7 @@ HRESULT themetool_get_theme(ULONG idx, ITheme** theme);
  * @param apply_now_not_only_registry If TRUE, theme is applied, otherwise only registry is changed
  * @param apply_flags Combination of the THEMETOOL_APPLY_FLAG_ macros
  * @param pack_flags Combination of the THEMETOOL_PACK_FLAG_ macros
- * @return A HRESULT from Windows
+ * @return A HRESULT
  */
 HRESULT themetool_set_active(
   HWND parent,
@@ -133,7 +133,7 @@ HRESULT themetool_set_active(
  * @param theme Opaque theme pointer
  * @param out Output buffer
  * @param cch Output buffer length
- * @return A HRESULT from Windows
+ * @return A HRESULT
  * @retval HRESULT_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER) Buffer too small
  */
 HRESULT themetool_theme_get_display_name(ITheme* theme, LPWSTR out, SIZE_T cch);
@@ -143,7 +143,7 @@ HRESULT themetool_theme_get_display_name(ITheme* theme, LPWSTR out, SIZE_T cch);
  * @param theme Opaque theme pointer
  * @param out Output buffer
  * @param cch Output buffer length
- * @return A HRESULT from Windows
+ * @return A HRESULT
  * @retval HRESULT_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER) Buffer too small
  */
 HRESULT themetool_theme_get_vs_path(ITheme* theme, LPWSTR out, SIZE_T cch);
@@ -157,7 +157,7 @@ void themetool_theme_release(ITheme* theme);
 /**
  * @brief Check if a signature is correct (but not if it's valid).
  * @param path Path to file
- * @return A HRESULT from Windows
+ * @return A HRESULT
  * @retval E_FAIL The signature was incorrect or not found
  * @retval S_OK The signature was present
  */
@@ -166,7 +166,7 @@ HRESULT themetool_signature_check(LPCWSTR path);
 /**
  * @brief Add an invalid signature to a theme.
  * @param path Path to file
- * @return A HRESULT from Windows
+ * @return A HRESULT
  */
 HRESULT themetool_signature_fix(LPCWSTR path);
 
