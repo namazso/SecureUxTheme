@@ -5,6 +5,8 @@
 
 #pragma comment(lib, "ntdll.lib")
 #pragma comment(lib, "advapi32.lib")
+#pragma comment(lib, "ole32.lib")
+#pragma comment(lib, "oleaut32.lib")
 
 std::pair<LPCVOID, SIZE_T> get_resource(HMODULE mod, WORD type, WORD id)
 {

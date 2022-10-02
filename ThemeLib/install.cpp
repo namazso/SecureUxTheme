@@ -474,7 +474,7 @@ static HRESULT InstallInternal(ULONG install_flags)
     return HRESULT_FROM_WIN32(ERROR_INSTALL_WRONG_PROCESSOR_ARCHITECTURE);
 
   auto hr = secureuxtheme_uninstall();
-  if (!SUCCEEDED(hr))
+  if (FAILED(hr))
     return hr;
 
   std::wstring path{};
@@ -514,7 +514,7 @@ static HRESULT InstallInternal(ULONG install_flags)
   if (install_flags & SECUREUXTHEME_INSTALL_RENAME_DEFAULTCOLORS)
   {
     hr = RenameDefaultColors();
-    if (!SUCCEEDED(hr))
+    if (FAILED(hr))
       return hr;
   }
 
@@ -524,7 +524,7 @@ static HRESULT InstallInternal(ULONG install_flags)
 HRESULT secureuxtheme_install(ULONG install_flags)
 {
   const auto hr = InstallInternal(install_flags);
-  if (!SUCCEEDED(hr))
+  if (FAILED(hr))
     secureuxtheme_uninstall();
   return hr;
 }

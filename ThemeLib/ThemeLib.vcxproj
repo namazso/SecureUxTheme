@@ -230,7 +230,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="themelib.cpp" />
+    <ClCompile Include="signature.cpp" />
+    <ClCompile Include="theme.cpp" />
+    <ClCompile Include="install.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\public\secureuxtheme.h" />

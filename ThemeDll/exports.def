@@ -5,3 +5,12 @@ secureuxtheme_hook_add
 secureuxtheme_hook_remove
 secureuxtheme_hook_test
 secureuxtheme_uninstall
+themetool_init
+themetool_get_manager
+themetool_get_theme_count
+themetool_get_theme
+themetool_set_active
+themetool_theme_get_display_name
+themetool_theme_get_vs_path
+themetool_signature_check
+themetool_signature_fix
