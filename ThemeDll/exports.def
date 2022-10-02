@@ -1,0 +1,7 @@
+﻿EXPORTS
+secureuxtheme_get_state_flags
+secureuxtheme_install
+secureuxtheme_hook_add
+secureuxtheme_hook_remove
+secureuxtheme_hook_test
+secureuxtheme_uninstall
