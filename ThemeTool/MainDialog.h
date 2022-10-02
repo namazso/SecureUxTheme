@@ -73,8 +73,7 @@ class MainDialog
   static bool IsInstalledForExecutable(const wchar_t* executable);
   static DWORD InstallForExecutable(const wchar_t* executable);
   static DWORD UninstallForExecutable(const wchar_t* executable);
-
-  DWORD UninstallInternal();
+  
   void Uninstall();
   void Install();
   void UpdatePatcherState();

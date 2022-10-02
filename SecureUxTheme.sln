@@ -11,6 +11,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NtdllCrt", "NtdllCrt\NtdllCrt.vcxproj", "{9EF2EA5B-B660-4F8A-8ECB-F2DBD19B8435}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ThemeTool", "ThemeTool\ThemeTool.vcxproj", "{D281B2E2-BCB9-4E7F-9FF4-312A52E68D94}"
+	ProjectSection(ProjectDependencies) = postProject
+		{0253689B-A896-4BC8-B286-05424877ECEA} = {0253689B-A896-4BC8-B286-05424877ECEA}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ThemeLib", "ThemeLib\ThemeLib.vcxproj", "{0253689B-A896-4BC8-B286-05424877ECEA}"
 EndProject

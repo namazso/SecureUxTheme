@@ -38,3 +38,6 @@
 #include <random>
 
 #include "stringencrypt.h"
+
+#include "../public/secureuxtheme.h"
+#include "../public/themetool.h"

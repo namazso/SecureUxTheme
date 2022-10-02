@@ -698,6 +698,10 @@ HRESULT secureuxtheme_uninstall()
   if (res != ERROR_SUCCESS)
     return HRESULT_FROM_WIN32(res);
 
+  res = UninstallForExecutable(L"dwm.exe");
+  if (res != ERROR_SUCCESS)
+    return HRESULT_FROM_WIN32(res);
+
   // at this point we removed all the hooks, we can delete the file
 
   std::wstring path{};
