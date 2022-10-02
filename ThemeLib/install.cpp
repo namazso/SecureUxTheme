@@ -75,11 +75,43 @@ EXTERN_C_END
 
 static constexpr wchar_t kPatcherDllName[] = L"SecureUxTheme.dll";
 static constexpr wchar_t kIFEO[] = L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\";
-static constexpr wchar_t kCurrentColorsPath[] = L"\\Registry\\Machine\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\";
+static constexpr wchar_t kHKLMPrefix[] = L"\\Registry\\Machine\\";
+static constexpr wchar_t kCurrentColorsPath[] = L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\";
 static constexpr wchar_t kCurrentColorsName[] = L"DefaultColors";
 static constexpr wchar_t kCurrentColorsBackup[] = L"DefaultColors_backup";
 
 static std::unordered_map<ULONG, std::pair<LPCVOID, SIZE_T>> g_dlls;
+
+class unique_redirection_disabler
+{
+  PVOID OldValue{};
+public:
+  unique_redirection_disabler()
+  {
+    Wow64DisableWow64FsRedirection(&OldValue);
+  }
+
+  unique_redirection_disabler(const unique_redirection_disabler&) = delete;
+
+  unique_redirection_disabler(unique_redirection_disabler&& other) noexcept
+  {
+    Wow64DisableWow64FsRedirection(&OldValue);
+    std::swap(OldValue, other.OldValue);
+  }
+
+  ~unique_redirection_disabler()
+  {
+    Wow64RevertWow64FsRedirection(OldValue);
+  }
+
+  unique_redirection_disabler& operator=(const unique_redirection_disabler&) = delete;
+
+  unique_redirection_disabler& operator=(unique_redirection_disabler&& other) noexcept
+  {
+    std::swap(OldValue, other.OldValue);
+    return *this;
+  }
+};
 
 static bool IsLoadedInSession()
 {
@@ -337,6 +369,48 @@ static std::pair<LPCVOID, SIZE_T> GetBlob()
   return entry == g_dlls.end() ? std::pair<LPCVOID, SIZE_T>{ nullptr, 0 } : entry->second;
 }
 
+DWORD open_key(PHKEY handle, const wchar_t* path, ULONG desired_access)
+{
+  UNICODE_STRING ustr{};
+  RtlInitUnicodeString(&ustr, path);
+  OBJECT_ATTRIBUTES attr{};
+  InitializeObjectAttributes(
+    &attr,
+    &ustr,
+    OBJ_CASE_INSENSITIVE | OBJ_OPENIF,
+    nullptr,
+    nullptr
+  );
+  auto status = NtOpenKey(
+    (PHANDLE)handle,
+    desired_access | KEY_WOW64_64KEY,
+    &attr
+  );
+
+  return RtlNtStatusToDosError(status);
+}
+
+DWORD rename_key(const wchar_t* old_path, const wchar_t* new_path)
+{
+  HKEY key{};
+  const auto ret = open_key(&key, old_path, KEY_ALL_ACCESS);
+
+  if (ret)
+    return ret;
+
+  UNICODE_STRING ustr{};
+  RtlInitUnicodeString(&ustr, new_path);
+  const auto status = NtRenameKey(
+    key,
+    &ustr
+  );
+
+  NtClose(key);
+
+  return RtlNtStatusToDosError(status);
+}
+
+
 static DWORD read_file(std::wstring_view path, std::vector<uint8_t>& content)
 {
   content.clear();
@@ -451,6 +525,7 @@ void secureuxtheme_set_dll_for_arch(LPCVOID data, SIZE_T size, ULONG arch)
 
 ULONG secureuxtheme_get_state_flags()
 {
+  unique_redirection_disabler _disabler{};
   ULONG flags = 0;
   if (IsLoadedInSession())
     flags |= SECUREUXTHEME_STATE_LOADED;
@@ -477,9 +552,67 @@ ULONG secureuxtheme_get_state_flags()
   return flags;
 }
 
+static bool IsValidDefaultColors(const wchar_t* default_colors)
+{
+  DWORD ActiveTitle{};
+  DWORD ActiveTitle_size{ sizeof(ActiveTitle) };
+  return ERROR_SUCCESS == RegGetValueW(
+    HKEY_LOCAL_MACHINE,
+    (std::wstring{ kCurrentColorsPath } + default_colors + L"\\Standard").c_str(),
+    L"ActiveTitle",
+    RRF_RT_REG_DWORD | RRF_ZEROONFAILURE,
+    nullptr,
+    &ActiveTitle,
+    &ActiveTitle_size
+  );
+}
+
 static HRESULT RenameDefaultColors()
 {
-  // TODO
+  const auto current_valid = IsValidDefaultColors(kCurrentColorsName);
+  
+  if (current_valid)
+  {
+    // we need to do something about current one.
+
+    // delete backup if any exists for good measure
+    RegDeleteKeyW(HKEY_LOCAL_MACHINE, (std::wstring{ kCurrentColorsPath } + kCurrentColorsBackup).c_str());
+    
+    const auto result = rename_key(
+      (std::wstring{ kHKLMPrefix } + kCurrentColorsPath + kCurrentColorsName).c_str(),
+      (std::wstring{ kHKLMPrefix } + kCurrentColorsPath + kCurrentColorsBackup).c_str()
+    );
+    if (result != ERROR_SUCCESS)
+      return HRESULT_FROM_WIN32(result);
+  }
+  HKEY result;
+  result = nullptr;
+  RegCreateKeyW(HKEY_LOCAL_MACHINE, (std::wstring{ kCurrentColorsPath } + kCurrentColorsName).c_str(), &result);
+  RegCloseKey(result);
+  result = nullptr;
+  RegCreateKeyW(HKEY_LOCAL_MACHINE, (std::wstring{ kCurrentColorsPath } + kCurrentColorsName + L"\\HighContrast").c_str(), &result);
+  RegCloseKey(result);
+  result = nullptr;
+  RegCreateKeyW(HKEY_LOCAL_MACHINE, (std::wstring{ kCurrentColorsPath } + kCurrentColorsName + L"\\Standard").c_str(), &result);
+  RegCloseKey(result);
+  result = nullptr;
+  return S_OK;
+}
+
+static HRESULT RestoreDefaultColors()
+{
+  // We ignore failures here because it's not a big edeal
+
+  const auto current_valid = IsValidDefaultColors(kCurrentColorsName);
+  const auto backup_valid = IsValidDefaultColors(kCurrentColorsBackup);
+  if (backup_valid && !current_valid)
+  {
+    RegDeleteKeyW(HKEY_LOCAL_MACHINE, (std::wstring{ kCurrentColorsPath } + kCurrentColorsName).c_str());
+    rename_key(
+      (std::wstring{ kHKLMPrefix } + kCurrentColorsPath + kCurrentColorsBackup).c_str(),
+      (std::wstring{ kHKLMPrefix } + kCurrentColorsPath + kCurrentColorsName).c_str()
+    );
+  }
   return S_OK;
 }
 
@@ -539,6 +672,7 @@ static HRESULT InstallInternal(ULONG install_flags)
 
 HRESULT secureuxtheme_install(ULONG install_flags)
 {
+  unique_redirection_disabler _disabler{};
   const auto hr = InstallInternal(install_flags);
   if (FAILED(hr))
     secureuxtheme_uninstall();
@@ -547,6 +681,7 @@ HRESULT secureuxtheme_install(ULONG install_flags)
 
 HRESULT secureuxtheme_uninstall()
 {
+  unique_redirection_disabler _disabler{};
   auto res = UninstallForExecutable(L"winlogon.exe");
   if (res != ERROR_SUCCESS)
     return HRESULT_FROM_WIN32(res);
@@ -572,20 +707,28 @@ HRESULT secureuxtheme_uninstall()
   res = nuke_file(path);
   if (res != ERROR_SUCCESS)
     return HRESULT_FROM_WIN32(res);
+
+  const auto hr = RestoreDefaultColors();
+  if (FAILED(hr))
+    return hr;
+
   return S_OK;
 }
 
 HRESULT secureuxtheme_hook_add(LPCWSTR executable)
 {
+  unique_redirection_disabler _disabler{};
   return HRESULT_FROM_WIN32(InstallForExecutable(executable));
 }
 
 HRESULT secureuxtheme_hook_remove(LPCWSTR executable)
 {
+  unique_redirection_disabler _disabler{};
   return HRESULT_FROM_WIN32(UninstallForExecutable(executable));
 }
 
 BOOLEAN secureuxtheme_hook_test(LPCWSTR executable)
 {
+  unique_redirection_disabler _disabler{};
   return IsInstalledForExecutable(executable) ? TRUE : FALSE;
 }
