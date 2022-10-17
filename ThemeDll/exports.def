@@ -29,5 +29,6 @@ themetool_get_theme
 themetool_set_active
 themetool_theme_get_display_name
 themetool_theme_get_vs_path
+themetool_theme_release
 themetool_signature_check
 themetool_signature_fix
