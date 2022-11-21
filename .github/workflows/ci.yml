@@ -20,20 +20,16 @@ jobs:
       with:
           submodules: recursive
 
-    - name: Get tag version
-      id: get_version
-      uses: battila7/get-version-action@v2
-
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v1.1
 
     - name: Build Solution (x64)
-      run: msbuild "-p:Configuration=Release;Platform=x64;CI_VERSION=${{ steps.get_version.outputs.version }}" SecureUxTheme.sln
+      run: msbuild "-p:Configuration=Release;Platform=x64;CI_VERSION=${{ github.ref_name }}" SecureUxTheme.sln
     - name: Build Solution (ARM64)
-      run: msbuild "-p:Configuration=Release;Platform=ARM64;CI_VERSION=${{ steps.get_version.outputs.version }}" SecureUxTheme.sln
+      run: msbuild "-p:Configuration=Release;Platform=ARM64;CI_VERSION=${{ github.ref_name }}" SecureUxTheme.sln
       # Win32 built last
     - name: Build Solution (Win32)
-      run: msbuild "-p:Configuration=Release;Platform=Win32;CI_VERSION=${{ steps.get_version.outputs.version }}" SecureUxTheme.sln
+      run: msbuild "-p:Configuration=Release;Platform=Win32;CI_VERSION=${{ github.ref_name }}" SecureUxTheme.sln
 
     - name: Upload SecureUxTheme to Artifacts (x64)
       uses: actions/upload-artifact@v3
@@ -67,12 +63,9 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: ThemeTool
-      - name: Get tag version
-        id: get_version
-        uses: battila7/get-version-action@v2
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
           files: ThemeTool.exe
-          name: Release ${{ steps.get_version.outputs.version }}
+          name: Release ${{ github.ref_name }}
           prerelease: true
