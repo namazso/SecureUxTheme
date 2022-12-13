@@ -21,7 +21,7 @@ jobs:
           submodules: recursive
 
     - name: Setup MSBuild
-      uses: microsoft/setup-msbuild@v1.1
+      uses: microsoft/setup-msbuild@v1.2
 
     - name: Build Solution (x64)
       run: msbuild "-p:Configuration=Release;Platform=x64;CI_VERSION=${{ github.ref_name }}" SecureUxTheme.sln
