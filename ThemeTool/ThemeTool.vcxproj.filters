@@ -24,9 +24,6 @@
     <ClCompile Include="MainDialog.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="signature.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="utl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -43,9 +40,6 @@
     <ClInclude Include="targetver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="interfaces.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -53,12 +47,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="MainDialog.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="main.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="signature.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="utl.h">
@@ -72,7 +60,6 @@
     <None Include="..\bin\Release\Win32\SecureUxTheme.dll" />
     <None Include="..\bin\Release\x64\SecureUxTheme.dll" />
     <None Include="..\bin\Release\ARM64\SecureUxTheme.dll" />
-    <None Include="..\LICENSE" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="icon.ico">

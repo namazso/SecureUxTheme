@@ -1,5 +1,5 @@
 // SecureUxTheme - A secure boot compatible in-memory UxTheme patcher
-// Copyright (C) 2020  namazso
+// Copyright (C) 2022  namazso <admin@namazso.eu>
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -13,6 +13,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 #pragma once
 #define _CRT_SECURE_NO_WARNINGS
 #define WIN32_LEAN_AND_MEAN
@@ -38,3 +39,6 @@
 #include <random>
 
 #include "stringencrypt.h"
+
+#include "../public/secureuxtheme.h"
+#include "../public/themetool.h"

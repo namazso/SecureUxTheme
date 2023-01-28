@@ -1,5 +1,5 @@
 // SecureUxTheme - A secure boot compatible in-memory UxTheme patcher
-// Copyright (C) 2020  namazso
+// Copyright (C) 2022  namazso <admin@namazso.eu>
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -13,6 +13,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 #pragma once
 
 namespace utl
@@ -24,18 +25,7 @@ namespace utl
 
   const std::pair<std::wstring, std::wstring> session_user();
   const std::pair<std::wstring, std::wstring> process_user();
-
-  DWORD read_file(std::wstring_view path, std::vector<char>& content);
-  DWORD write_file(std::wstring_view path, const void* data, size_t size);
-  DWORD nuke_file(std::wstring_view path);
-
-  DWORD open_key(PHKEY handle, const wchar_t* path, ULONG desired_access);
-  DWORD rename_key(const wchar_t* old_path, const wchar_t* new_path);
-
-  DWORD get_KnownDllPath(std::wstring& wstr);
-
-  std::pair<const void*, size_t> get_dll_blob();
-
+  
   std::wstring ErrorToString(HRESULT error);
 
   inline int vfmt(std::wstring& str, const wchar_t* fmt, va_list args)
@@ -78,36 +68,4 @@ namespace utl
     MessageBoxW(hwnd, text, ESTRt(L"Fatal error"), MB_OK | MB_ICONERROR);
     PostQuitMessage(-1);
   }
-
-
-  class unique_redirection_disabler
-  {
-    PVOID OldValue;
-  public:
-    unique_redirection_disabler()
-    {
-      Wow64DisableWow64FsRedirection(&OldValue);
-    }
-
-    unique_redirection_disabler(const unique_redirection_disabler&) = delete;
-
-    unique_redirection_disabler(unique_redirection_disabler&& other) noexcept
-    {
-      Wow64DisableWow64FsRedirection(&OldValue);
-      std::swap(OldValue, other.OldValue);
-    }
-
-    ~unique_redirection_disabler()
-    {
-      Wow64RevertWow64FsRedirection(OldValue);
-    }
-
-    unique_redirection_disabler& operator=(const unique_redirection_disabler&) = delete;
-
-    unique_redirection_disabler& operator=(unique_redirection_disabler&& other) noexcept
-    {
-      std::swap(OldValue, other.OldValue);
-      return *this;
-    }
-  };
 }

@@ -1,5 +1,5 @@
 // SecureUxTheme - A secure boot compatible in-memory UxTheme patcher
-// Copyright (C) 2020  namazso
+// Copyright (C) 2022  namazso <admin@namazso.eu>
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -13,14 +13,13 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 #include "pch.h"
 
 #include "MainDialog.h"
 
 #include <chrono>
 
-#include "main.h"
-#include "signature.h"
 #include "utl.h"
 
 // using undocumented stuff is bad
@@ -38,13 +37,6 @@ extern "C" NTSYSAPI NTSTATUS NTAPI RtlAdjustPrivilege(
   _Out_ PBOOLEAN WasEnabled
 );
 
-#define FLG_APPLICATION_VERIFIER (0x100)
-
-static constexpr wchar_t kPatcherDllName[] = L"SecureUxTheme.dll";
-static constexpr wchar_t kIFEO[] = L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\";
-static constexpr wchar_t kCurrentColorsPath[] = L"\\Registry\\Machine\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\";
-static constexpr wchar_t kCurrentColorsName[] = L"DefaultColors";
-static constexpr wchar_t kCurrentColorsBackup[] = L"DefaultColors_backup";
 static constexpr wchar_t kHelpText[] =
 LR"(- For any custom themes to work SecureUxTheme or another patcher must be installed
 - Styles need to be signed, the signature just doesn't need to be valid
@@ -60,56 +52,6 @@ LR"(  - You can simply use ThemeTool to patch and apply themes (recommended)
   - or LogonUI must be hooked
 )";
 
-static DWORD RenameDefaultColors()
-{
-  const auto old_name = std::wstring{ ESTRt(kCurrentColorsPath) } + ESTRt(kCurrentColorsName);
-  return utl::rename_key(old_name.c_str(), ESTRt(kCurrentColorsBackup));
-}
-
-static DWORD RestoreDefaultColors()
-{
-  const auto old_name = std::wstring{ ESTRt(kCurrentColorsPath) } + ESTRt(kCurrentColorsBackup);
-  return utl::rename_key(old_name.c_str(), ESTRt(kCurrentColorsName));
-}
-
-static const wchar_t* PatcherStateText(PatcherState state)
-{
-  static const wchar_t* const text[] = { L"No", L"Yes", L"Probably", L"Outdated" };
-  return text[(size_t)state];
-}
-
-static std::wstring GetPatcherDllPath()
-{
-  std::wstring path;
-  const auto status = utl::get_KnownDllPath(path);
-  if (status != NO_ERROR)
-    utl::Fatal(nullptr, ESTRt(L"Cannot find KnownDllPath %08X"), status);
-
-  path += ESTRt(L"\\");
-  path += kPatcherDllName;
-  return path;
-}
-
-static bool IsWin10()
-{
-  ULONG major = 0, minor = 0, build = 0;
-  RtlGetNtVersionNumbers(&major, &minor, &build);
-  return major == 10;
-}
-
-static bool IsLoadedInSession()
-{
-  const auto h = OpenEventW(
-    SYNCHRONIZE,
-    FALSE,
-    ESTRt(L"SecureUxTheme_Loaded")
-  );
-  if (!h)
-    return GetLastError() == ERROR_ACCESS_DENIED; // honestly, i have no idea how to set up permissions when creating it
-  CloseHandle(h);
-  return true;
-}
-
 static std::wstring GetWindowTextStr(HWND hwnd)
 {
   SetLastError(0);
@@ -119,7 +61,7 @@ static std::wstring GetWindowTextStr(HWND hwnd)
     return {};
   std::wstring str;
   str.resize(len + 1);
-  str.resize(GetWindowTextW(hwnd, str.data(), str.size()));
+  str.resize(GetWindowTextW(hwnd, str.data(), (int)str.size()));
   return str;
 }
 
@@ -145,376 +87,115 @@ void MainDialog::Log(const wchar_t* fmt, ...)
   SetWindowTextW(_hwnd_LOG, log.c_str());
 }
 
-bool MainDialog::IsInstalledForExecutable(const wchar_t* executable)
-{
-  const auto subkey = std::wstring{ ESTRt(kIFEO) } +executable;
-  DWORD GlobalFlag = 0;
-  DWORD GlobalFlag_size = sizeof(GlobalFlag);
-  const auto ret1 = RegGetValueW(
-    HKEY_LOCAL_MACHINE,
-    subkey.c_str(),
-    ESTRt(L"GlobalFlag"),
-    RRF_RT_REG_DWORD | RRF_ZEROONFAILURE,
-    nullptr,
-    &GlobalFlag,
-    &GlobalFlag_size
-  );
-  wchar_t VerifierDlls[257];
-  DWORD VerifierDlls_size = sizeof(VerifierDlls);
-  const auto ret2 = RegGetValueW(
-    HKEY_LOCAL_MACHINE,
-    subkey.c_str(),
-    ESTRt(L"VerifierDlls"),
-    RRF_RT_REG_SZ | RRF_ZEROONFAILURE,
-    nullptr,
-    VerifierDlls,
-    &VerifierDlls_size
-  );
-  return GlobalFlag & FLG_APPLICATION_VERIFIER && 0 == _wcsicmp(VerifierDlls, kPatcherDllName);
-}
-
-DWORD MainDialog::InstallForExecutable(const wchar_t* executable)
-{
-  const auto subkey = std::wstring{ ESTRt(kIFEO) } +executable;
-  DWORD GlobalFlag = 0;
-  DWORD GlobalFlag_size = sizeof(GlobalFlag);
-  // we don't care if it fails
-  RegGetValueW(
-    HKEY_LOCAL_MACHINE,
-    subkey.c_str(),
-    ESTRt(L"GlobalFlag"),
-    RRF_RT_REG_DWORD | RRF_ZEROONFAILURE,
-    nullptr,
-    &GlobalFlag,
-    &GlobalFlag_size
-  );
-  GlobalFlag |= FLG_APPLICATION_VERIFIER;
-  auto ret = RegSetKeyValueW(
-    HKEY_LOCAL_MACHINE,
-    subkey.c_str(),
-    ESTRt(L"GlobalFlag"),
-    REG_DWORD,
-    &GlobalFlag,
-    sizeof(GlobalFlag)
-  );
-  if(!ret)
-  {
-    ret = RegSetKeyValueW(
-      HKEY_LOCAL_MACHINE,
-      subkey.c_str(),
-      ESTRt(L"VerifierDlls"),
-      REG_SZ,
-      kPatcherDllName,
-      sizeof(kPatcherDllName)
-    );
-  }
-  return ret;
-}
-
-DWORD MainDialog::UninstallForExecutable(const wchar_t* executable)
-{
-  const auto subkey = std::wstring{ ESTRt(kIFEO) } +executable;
-  DWORD GlobalFlag = 0;
-  DWORD GlobalFlag_size = sizeof(GlobalFlag);
-  // we don't care if it fails
-  RegGetValueW(
-    HKEY_LOCAL_MACHINE,
-    subkey.c_str(),
-    ESTRt(L"GlobalFlag"),
-    RRF_RT_REG_DWORD | RRF_ZEROONFAILURE,
-    nullptr,
-    &GlobalFlag,
-    &GlobalFlag_size
-  );
-  GlobalFlag &= ~FLG_APPLICATION_VERIFIER;
-  DWORD ret = ERROR_SUCCESS;
-  if(!GlobalFlag)
-  {
-    ret = RegDeleteKeyValueW(
-      HKEY_LOCAL_MACHINE,
-      subkey.c_str(),
-      ESTRt(L"GlobalFlag")
-    );
-  }
-  else
-  {
-    ret = RegSetKeyValueW(
-      HKEY_LOCAL_MACHINE,
-      subkey.c_str(),
-      ESTRt(L"GlobalFlag"),
-      REG_DWORD,
-      &GlobalFlag,
-      sizeof(GlobalFlag)
-    );
-  }
-
-  // query it again, so we don't delete the other key if we failed removing the flag somehow, that would login loop
-  GlobalFlag_size = sizeof(GlobalFlag);
-  RegGetValueW(
-    HKEY_LOCAL_MACHINE,
-    subkey.c_str(),
-    ESTRt(L"GlobalFlag"),
-    RRF_RT_REG_DWORD | RRF_ZEROONFAILURE,
-    nullptr,
-    &GlobalFlag,
-    &GlobalFlag_size
-  );
-  if(!(GlobalFlag & FLG_APPLICATION_VERIFIER))
-  {
-    // FLG_APPLICATION_VERIFIER is not set, we don't care how we got here, nor if we succeed deleting VerifierDlls
-    ret = ERROR_SUCCESS;
-
-    RegDeleteKeyValueW(
-      HKEY_LOCAL_MACHINE,
-      subkey.c_str(),
-      ESTRt(L"VerifierDlls")
-    );
-  }
-
-  return ret;
-}
-
-DWORD MainDialog::UninstallInternal()
+void MainDialog::Uninstall()
 {
   Log(ESTRt(L"Uninstall started..."));
 
-  const std::wstring remove_from[] = {
-    std::wstring(ESTRt(L"winlogon.exe")),
-    std::wstring(ESTRt(L"explorer.exe")),
-    std::wstring(ESTRt(L"SystemSettings.exe")),
-    std::wstring(ESTRt(L"dwm.exe")),
-    std::wstring(ESTRt(L"LogonUI.exe"))
-  };
+  const auto hr = secureuxtheme_uninstall();
 
-  DWORD ret = ERROR_SUCCESS;
-  auto failed = false;
+  Log(ESTRt(L"secureuxtheme_uninstall() returned %08X"), hr);
 
-  for (const auto executable : remove_from)
-  {
-    ret = UninstallForExecutable(executable.c_str());
-    Log(ESTRt(L"UninstallForExecutable(\"%s\") returned %08X"), executable.c_str(), ret);
-    failed = ret != 0;
-    if (failed)
-      break;
-  }
-
-  if (failed)
-  {
+  if (FAILED(hr))
     utl::FormattedMessageBox(
       _hwnd,
       ESTRt(L"Error"),
       MB_OK | MB_ICONERROR,
-      ESTRt(L"Uninstalling failed, see log for more info. Error: %s"),
-      utl::ErrorToString(ret).c_str()
+      ESTRt(L"Uninstall failed. Error: %s"),
+      utl::ErrorToString(hr).c_str()
     );
-    return ret;
-  }
-
-  const auto dll_path = GetPatcherDllPath();
-  ret = utl::nuke_file(dll_path);
-  Log(ESTRt(L"utl::nuke_file returned: %08X"), ret);
-  if (ret)
-  {
-    utl::FormattedMessageBox(
-      _hwnd,
-      ESTRt(L"Warning"),
-      MB_OK | MB_ICONWARNING,
-      ESTRt(L"Uninstalling succeeded, but the file couldn't be removed. This may cause problems on reinstall. Error: %s"),
-      utl::ErrorToString(ret).c_str()
-    );
-  }
-
-  // we don't really care if it succeeds
-  const auto restore_ret = RestoreDefaultColors();
-  Log(ESTRt(L"RestoreDefaultColors returned %08X"), restore_ret);
-
-  return ret;
-}
-
-void MainDialog::Uninstall()
-{
-  {
-    utl::unique_redirection_disabler disabler{};
-
-    // TODO: warn user if current theme not signed
-
-    UninstallInternal();
-  }
 
   UpdatePatcherState();
 }
 
 void MainDialog::Install()
 {
-  utl::unique_redirection_disabler disabler{};
-
-  auto ret = UninstallInternal();
-
-  if(ret)
-  {
-    utl::FormattedMessageBox(
-      _hwnd,
-      ESTRt(L"Error"),
-      MB_OK | MB_ICONERROR,
-      ESTRt(L"Installation cannot continue because uninstalling failed")
-    );
-    return;
-  }
-
   Log(ESTRt(L"Install started..."));
 
-  const auto dll_path = GetPatcherDllPath();
-  const auto blob = utl::get_dll_blob();
-  ret = utl::write_file(dll_path, blob.first, blob.second);
-  Log(ESTRt(L"utl::write_file returned %08X"), ret);
-  if(ret)
+  ULONG install_flags{};
+  if (BST_CHECKED == Button_GetCheck(_hwnd_CHECK_EXPLORER))
+    install_flags |= SECUREUXTHEME_INSTALL_HOOK_EXPLORER;
+  if (BST_CHECKED == Button_GetCheck(_hwnd_CHECK_SYSTEMSETTINGS))
+    install_flags |= SECUREUXTHEME_INSTALL_HOOK_SETTINGS;
+  if (BST_CHECKED == Button_GetCheck(_hwnd_CHECK_LOGONUI))
+    install_flags |= SECUREUXTHEME_INSTALL_HOOK_LOGONUI;
+  if (BST_CHECKED == Button_GetCheck(_hwnd_CHECK_COLORS))
+    install_flags |= SECUREUXTHEME_INSTALL_RENAME_DEFAULTCOLORS;
+
+  const auto hr = secureuxtheme_install(install_flags);
+
+  Log(ESTRt(L"secureuxtheme_uninstall(%08X) returned %08X"), install_flags, hr);
+
+  if (FAILED(hr))
   {
     utl::FormattedMessageBox(
       _hwnd,
       ESTRt(L"Error"),
       MB_OK | MB_ICONERROR,
-      ESTRt(L"Installing patcher DLL failed. Error: %s"),
-      utl::ErrorToString(ret)
+      ESTRt(L"Install failed. Error: %s"),
+      utl::ErrorToString(hr).c_str()
     );
-    return;
   }
-
-  ret = InstallForExecutable(ESTRt(L"winlogon.exe"));
-  Log(ESTRt(L"InstallForExecutable(\"winlogon.exe\") returned %08X"), ret);
-  if(ret)
+  else
   {
-    utl::FormattedMessageBox(
+    const auto reboot = IDYES == utl::FormattedMessageBox(
       _hwnd,
-      ESTRt(L"Error"),
-      MB_OK | MB_ICONERROR,
-      ESTRt(L"Installing main hook failed. Error: %s"),
-      utl::ErrorToString(ret).c_str()
+      ESTRt(L"Success"),
+      MB_YESNO,
+      ESTRt(L"Installing succeeded, patcher will be loaded next boot. Do you want to reboot now?")
     );
-    UninstallInternal();
-    return;
-  }
 
-  const std::pair<HWND MainDialog::*, std::wstring> checks[]
-  {
-    { &MainDialog::_hwnd_CHECK_EXPLORER,       std::wstring{ESTRt(L"explorer.exe")}       },
-    { &MainDialog::_hwnd_CHECK_LOGONUI,        std::wstring{ESTRt(L"LogonUI.exe")}        },
-    { &MainDialog::_hwnd_CHECK_SYSTEMSETTINGS, std::wstring{ESTRt(L"SystemSettings.exe")} },
-  };
-
-  for(const auto& check : checks)
-  {
-    if (BST_CHECKED != Button_GetCheck(this->*check.first))
-      continue;
-
-    const auto ret = InstallForExecutable(check.second.c_str());
-    Log(ESTRt(L"InstallForExecutable(\"%s\") returned %08X"), check.second.c_str(), ret);
-    if(ret)
+    if (reboot)
     {
-      utl::FormattedMessageBox(
-        _hwnd,
-        ESTRt(L"Warning"),
-        MB_OK | MB_ICONWARNING,
-        ESTRt(L"Installing for \"%s\" failed. Error: %s"),
-        check.second.c_str(),
-        utl::ErrorToString(ret).c_str()
-      );
-    }
-  }
+      BOOLEAN old = FALSE;
+      const auto status = RtlAdjustPrivilege(19, TRUE, FALSE, &old);
+      Log(ESTRt(L"RtlAdjustPrivilege returned %08X"), status);
+      if (!NT_SUCCESS(status))
+      {
+        utl::FormattedMessageBox(
+          _hwnd,
+          ESTRt(L"Error"),
+          MB_OK | MB_ICONERROR,
+          ESTRt(L"Adjusting shutdown privilege failed. Error: %s"),
+          utl::ErrorToString(HRESULT_FROM_WIN32(RtlNtStatusToDosError(status))).c_str()
+        );
+        return;
+      }
 
-  if(BST_CHECKED == Button_GetCheck(_hwnd_CHECK_COLORS))
-  {
-    const auto ret = RenameDefaultColors();
-    Log(ESTRt(L"RenameDefaultColors returned %08X"), ret);
-    if(ret && ret != ERROR_PATH_NOT_FOUND)
-    {
-      utl::FormattedMessageBox(
-        _hwnd,
-        ESTRt(L"Warning"),
-        MB_OK | MB_ICONWARNING,
-        ESTRt(L"Renaming CurrentColors failed. If you have the LogonUI problem consider using LogonUI hook. Error: %s"),
-        utl::ErrorToString(ret).c_str()
-      );
-    }
-  }
-
-  const auto reboot = IDYES == utl::FormattedMessageBox(
-    _hwnd,
-    ESTRt(L"Success"),
-    MB_YESNO,
-    ESTRt(L"Installing succeeded, patcher will be loaded next boot. Do you want to reboot now?")
-  );
-
-  if(reboot)
-  {
-    BOOLEAN old = FALSE;
-    const auto status = RtlAdjustPrivilege(19, TRUE, FALSE, &old);
-    Log(ESTRt(L"RtlAdjustPrivilege returned %08X"), status);
-    if(!NT_SUCCESS(status))
-    {
-      utl::FormattedMessageBox(
-        _hwnd,
-        ESTRt(L"Error"),
-        MB_OK | MB_ICONERROR,
-        ESTRt(L"Adjusting shutdown privilege failed. Error: %s"),
-        utl::ErrorToString(RtlNtStatusToDosError(status)).c_str()
-      );
-      return;
-    }
-
-    const auto succeeded = ExitWindowsEx(EWX_REBOOT, 0);
-    if(!succeeded)
-    {
-      ret = GetLastError();
-      Log(ESTRt(L"ExitWindowsEx failed with GetLastError() = %08X"), ret);
-      utl::FormattedMessageBox(
-        _hwnd,
-        ESTRt(L"Error"),
-        MB_OK | MB_ICONERROR,
-        ESTRt(L"Rebooting failed. Error: %s"),
-        utl::ErrorToString(ret).c_str()
-      );
+      const auto succeeded = ExitWindowsEx(EWX_REBOOT, 0);
+      if (!succeeded)
+      {
+        const auto ret = GetLastError();
+        Log(ESTRt(L"ExitWindowsEx failed with GetLastError() = %08X"), ret);
+        utl::FormattedMessageBox(
+          _hwnd,
+          ESTRt(L"Error"),
+          MB_OK | MB_ICONERROR,
+          ESTRt(L"Rebooting failed. Error: %s"),
+          utl::ErrorToString(HRESULT_FROM_WIN32(ret)).c_str()
+        );
+      }
     }
   }
 }
 
+static const wchar_t* PatcherStateText(PatcherState state)
+{
+  static const wchar_t* const text[] = { L"No", L"Yes", L"Probably", L"Outdated" };
+  return text[(size_t)state];
+}
+
 void MainDialog::UpdatePatcherState()
 {
-  utl::unique_redirection_disabler d{};
-  const auto dll_path = GetPatcherDllPath();
-  const auto dll_expected_content = utl::get_dll_blob();
-  bool file_has_content;
-  bool file_is_same;
-  DWORD file_error;
-
-  {
-    std::vector<char> content;
-    file_error = utl::read_file(dll_path, content);
-    file_has_content = !content.empty();
-    const auto begin = (char*)dll_expected_content.first;
-    const auto end = begin + dll_expected_content.second;
-    file_is_same = std::equal(content.begin(), content.end(), begin, end);
-  }
-
-  const auto reg_winlogon = IsInstalledForExecutable(ESTRt(L"winlogon.exe"));
-  const auto reg_explorer = IsInstalledForExecutable(ESTRt(L"explorer.exe"));
-  const auto reg_systemsettings = IsInstalledForExecutable(ESTRt(L"SystemSettings.exe"));
-  const auto reg_logonui = IsInstalledForExecutable(ESTRt(L"LogonUI.exe"));
-  const auto is_loaded = IsLoadedInSession();
-  Log(
-    ESTRt(L"UpdatePatcherState: file_has_content %d file_is_same %d file_error %d is_loaded %d"),
-    file_has_content, file_is_same, file_error, (int)is_loaded
-  );
-  _is_installed =
-    (file_has_content && reg_winlogon)
-    ? (file_is_same ? PatcherState::Yes : PatcherState::Outdated)
+  const auto state = secureuxtheme_get_state_flags();
+  _is_installed = state & SECUREUXTHEME_STATE_INSTALLED
+    ? (state & SECUREUXTHEME_STATE_CURRENT
+      ? PatcherState::Yes
+      : PatcherState::Outdated)
     : PatcherState::No;
-  _is_loaded =
-    is_loaded
-    ? PatcherState::Yes
-    : (_is_installed == PatcherState::Outdated || (!IsWin10() && _is_installed == PatcherState::Yes) ? PatcherState::Probably : PatcherState::No);
-  _is_logonui = reg_logonui ? PatcherState::Yes : PatcherState::No;
-  _is_explorer = reg_explorer ? PatcherState::Yes : PatcherState::No;
-  _is_systemsettings = reg_systemsettings ? PatcherState::Yes : PatcherState::No;
+  _is_loaded = state & SECUREUXTHEME_STATE_LOADED ? PatcherState::Yes : PatcherState::No;
+  _is_logonui = state & SECUREUXTHEME_STATE_LOGONUI_HOOKED ? PatcherState::Yes : PatcherState::No;
+  _is_explorer = state & SECUREUXTHEME_STATE_EXPLORER_HOOKED ? PatcherState::Yes : PatcherState::No;
+  _is_systemsettings = state & SECUREUXTHEME_STATE_SETTINGS_HOOKED ? PatcherState::Yes : PatcherState::No;
 
   UpdatePatcherStateDisplay();
 }
@@ -590,8 +271,8 @@ MainDialog::MainDialog(HWND hDlg, void*)
   //style |= LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SINGLESEL | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER;
   //SetWindowLongW(_hwnd_LIST, GWL_STYLE, style);
 
-  int iCount = 0;
-  g_pThemeManager2->GetThemeCount(&iCount);
+  ULONG theme_count{};
+  themetool_get_theme_count(&theme_count);
 
   //int iCurrent = 0;
   //g_pThemeManager2->GetCurrentTheme(&iCurrent);
@@ -612,16 +293,13 @@ MainDialog::MainDialog(HWND hDlg, void*)
     ListView_SetItemText(_hwnd_LIST, item, 0, (LPTSTR)name);
   };
 
-  for (auto i = 0; i < iCount; ++i)
+  for (auto i = 0u; i < theme_count; ++i)
   {
-    ITheme* pTheme = nullptr;
-    g_pThemeManager2->GetTheme(i, &pTheme);
-
-    const auto name = pTheme->GetDisplayName();
-
-    add_item(name.c_str(), i);
-
-    pTheme->Release();
+    ITheme* theme{};
+    themetool_get_theme(i, &theme);
+    wchar_t name[256]{};
+    themetool_theme_get_display_name(theme, name, std::size(name));
+    add_item(name, i);
   }
 
   // LVS_EX_AUTOSIZECOLUMNS just doesn't fucking work no matter where I put it
@@ -638,22 +316,22 @@ void MainDialog::SelectTheme(int id)
     return;
   }
 
-  CComPtr<ITheme> pTheme = nullptr;
-  auto result = g_pThemeManager2->GetTheme(id, &pTheme);
-  if (FAILED(result))
+  ITheme* theme = nullptr;
+  auto hr = themetool_get_theme(id, &theme);
+  if (FAILED(hr))
   {
     Static_SetText(_hwnd_STATIC_STYLE, _T(""));
-    Log(ESTRt(L"SelectTheme: g_pThemeManager2->GetTheme failed with %08X"), result);
+    Log(ESTRt(L"SelectTheme: themetool_get_theme(%d) failed with %08X"), id, hr);
     return;
   }
 
-  std::wstring style;
-  result = pTheme->GetVisualStyle(style);
-  if (FAILED(result))
+  wchar_t path[MAX_PATH];
+  hr = themetool_theme_get_vs_path(theme, path, std::size(path));
+  if (FAILED(hr))
   {
     Static_SetText(_hwnd_STATIC_STYLE, _T(""));
-    Log(ESTRt(L"SelectTheme: pTheme->GetVisualStyle failed with %08X"), result);
-    if ((uint32_t)result == (uint32_t)0x80070002)
+    Log(ESTRt(L"SelectTheme: themetool_theme_get_vs_path failed with %08X"), hr);
+    if (hr == HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND))
       utl::FormattedMessageBox(
         _hwnd,
         ESTRt(L"Warning"),
@@ -663,10 +341,10 @@ void MainDialog::SelectTheme(int id)
     return;
   }
 
-  Static_SetText(_hwnd_STATIC_STYLE, style.c_str());
+  Static_SetText(_hwnd_STATIC_STYLE, path);
 
   Button_Enable(_hwnd_BUTTON_APPLY, TRUE);
-  if(!style.empty() && sig::check_file(style.c_str()) == E_FAIL)
+  if(path[0] && themetool_signature_check(path) == E_FAIL)
   {
     Static_SetText(_hwnd_STATIC_NEEDS_PATCHING, ESTRt(L"Style needs patching"));
     Button_SetText(_hwnd_BUTTON_APPLY, ESTRt(L"Patch and apply"));
@@ -684,35 +362,35 @@ HRESULT MainDialog::PatchThemeInternal(int id)
 {
   Log(ESTRt(L"PatchThemeInternal(%d)"), id);
 
+  wchar_t path[MAX_PATH]{};
   bool patched = true;
-  std::wstring style;
 
   {
-    CComPtr<ITheme> pTheme = nullptr;
-    auto result = g_pThemeManager2->GetTheme(id, &pTheme);
+    ITheme* theme = nullptr;
+    auto result = themetool_get_theme(id, &theme);
     if (SUCCEEDED(result))
     {
-      result = pTheme->GetVisualStyle(style);
+      result = themetool_theme_get_vs_path(theme, path, std::size(path));
       if (SUCCEEDED(result))
       {
-        if (!style.empty() && sig::check_file(style.c_str()) == E_FAIL)
+        if (path[0] && themetool_signature_check(path) == E_FAIL)
           patched = false;
       }
       else
       {
-        Log(ESTRt(L"pTheme->GetVisualStyle failed with %08X"), result);
+        Log(ESTRt(L"themetool_theme_get_vs_path failed with %08X"), result);
       }
     }
     else
     {
-      Log(ESTRt(L"g_pThemeManager2->GetTheme(%d) failed with %08X"), id, result);
+      Log(ESTRt(L"themetool_get_theme(%d) failed with %08X"), id, result);
       return result;
     }
   }
 
-  HRESULT fix_result = NOERROR;
-  if (!patched)
-    fix_result = sig::fix_file(style.c_str());
+  HRESULT fix_result = S_OK;
+  if (!patched && path[0])
+    fix_result = themetool_signature_fix(path);
 
   return fix_result;
 }
@@ -798,9 +476,9 @@ Are you sure you want to continue?)")
       return;
   }
 
-  auto apply_flags = 0;
+  ULONG apply_flags = 0;
   
-#define CHECK_FLAG(flag) apply_flags |= Button_GetCheck(_hwnd_CHECK_ ## flag) ? THEME_APPLY_FLAG_ ## flag : 0
+#define CHECK_FLAG(flag) apply_flags |= Button_GetCheck(_hwnd_CHECK_ ## flag) ? THEMETOOL_APPLY_FLAG_ ## flag : 0
 
   CHECK_FLAG(IGNORE_BACKGROUND);
   CHECK_FLAG(IGNORE_CURSOR);
@@ -813,17 +491,13 @@ Are you sure you want to continue?)")
 
   HRESULT result;
 
-  {
-    utl::unique_redirection_disabler disabler{};
-
-    result = g_pThemeManager2->SetCurrentTheme(
-      _hwnd,
-      id,
-      1,
-      (THEME_APPLY_FLAGS)apply_flags,
-      (THEMEPACK_FLAGS)0
-    );
-  }
+  result = themetool_set_active(
+    _hwnd,
+    id,
+    1,
+    apply_flags,
+    0
+  );
 
   Log(ESTRt(L"ApplyTheme: SetCurrentTheme returned %08X"), result);
 

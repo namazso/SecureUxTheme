@@ -1,21 +1,21 @@
-// SecureUxTheme - A secure boot compatible in-memory UxTheme patcher
-// Copyright (C) 2020  namazso
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#include "pch.h"
+//  SecureUxTheme - A secure boot compatible in-memory UxTheme patcher
+//  Copyright (C) 2022  namazso <admin@namazso.eu>
+//  
+//  This library is free software; you can redistribute it and/or
+//  modify it under the terms of the GNU Lesser General Public
+//  License as published by the Free Software Foundation; either
+//  version 2.1 of the License, or (at your option) any later version.
+//  
+//  This library is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//  Lesser General Public License for more details.
+//  
+//  You should have received a copy of the GNU Lesser General Public
+//  License along with this library; if not, write to the Free Software
+//  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-#include "signature.h"
+#include "../public/themetool.h"
 
 typedef struct _THEME_SIGNATURE_HEADER
 {
@@ -70,7 +70,7 @@ static HRESULT /*CThemeSignature::*/ReadSignature(
   if (!ReadFile(File, Signature, k_signature_size, &NumberOfBytesRead, nullptr))
     return ResultFromKnownLastError();
 
-  return NumberOfBytesRead != k_signature_size ? E_FAIL : NOERROR;
+  return NumberOfBytesRead != k_signature_size ? E_FAIL : S_OK;
 }
 
 static HRESULT WriteSignature(
@@ -103,7 +103,7 @@ static HRESULT WriteSignature(
     nullptr
   );
 
-  return succeeded && bytes_written == sizeof(signature_header) ? NOERROR : ResultFromKnownLastError();
+  return succeeded && bytes_written == sizeof(signature_header) ? S_OK : ResultFromKnownLastError();
 }
 
 static HANDLE open_file(PCTSTR file_name, bool write)
@@ -132,10 +132,10 @@ static HANDLE open_file(PCTSTR file_name, bool write)
   return file;
 }
 
-HRESULT sig::check_file(LPCWSTR path)
+HRESULT themetool_signature_check(LPCWSTR path)
 {
   const auto file = open_file(path, false);
-  if(file == INVALID_HANDLE_VALUE)
+  if (file == INVALID_HANDLE_VALUE)
     return ResultFromKnownLastError();
 
   BYTE signature[k_signature_size];
@@ -144,10 +144,10 @@ HRESULT sig::check_file(LPCWSTR path)
   return hr;
 }
 
-HRESULT sig::fix_file(LPCWSTR path)
+HRESULT themetool_signature_fix(LPCWSTR path)
 {
-  if (SUCCEEDED(check_file(path)))
-    return NOERROR;
+  if (SUCCEEDED(themetool_signature_check(path)))
+    return S_OK;
 
   const auto file = open_file(path, true);
   if (file == INVALID_HANDLE_VALUE)

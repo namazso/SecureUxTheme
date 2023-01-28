@@ -1,5 +1,5 @@
 // SecureUxTheme - A secure boot compatible in-memory UxTheme patcher
-// Copyright (C) 2020  namazso
+// Copyright (C) 2022  namazso <admin@namazso.eu>
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -13,6 +13,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 #pragma once
 #include "dlg.h"
 #include "utl.h"
@@ -69,12 +70,7 @@ class MainDialog
   std::list<std::wstring> _names;
 
   void Log(const wchar_t* fmt, ...);
-
-  static bool IsInstalledForExecutable(const wchar_t* executable);
-  static DWORD InstallForExecutable(const wchar_t* executable);
-  static DWORD UninstallForExecutable(const wchar_t* executable);
-
-  DWORD UninstallInternal();
+  
   void Uninstall();
   void Install();
   void UpdatePatcherState();

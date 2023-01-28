@@ -1,5 +1,5 @@
 // SecureUxTheme - A secure boot compatible in-memory UxTheme patcher
-// Copyright (C) 2020  namazso
+// Copyright (C) 2022  namazso <admin@namazso.eu>
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -13,6 +13,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 #include "pch.h"
 
 #include "utl.h"
@@ -150,12 +151,6 @@ static int get_needed_dll_resource_id()
   return 0;
 }
 
-std::pair<const void*, size_t> utl::get_dll_blob()
-{
-  const auto id = get_needed_dll_resource_id();
-  return id ? get_resource(256, id) : std::pair<const void*, size_t>{ nullptr, 0 };
-}
-
 bool utl::is_elevated()
 {
   DWORD result = FALSE;
@@ -224,9 +219,9 @@ const std::pair<std::wstring, std::wstring> utl::process_user()
     if (success)
     {
       WCHAR username[USERNAME_LENGTH + 1]{};
-      DWORD username_len = std::size(username);
+      DWORD username_len = (DWORD)std::size(username);
       WCHAR domain[DOMAIN_LENGTH + 1]{};
-      DWORD domain_len = std::size(domain);
+      DWORD domain_len = (DWORD)std::size(domain);
       SID_NAME_USE name_use{};
       success = LookupAccountSidW(
         nullptr,
@@ -244,184 +239,6 @@ const std::pair<std::wstring, std::wstring> utl::process_user()
   }
   return pair;
 }
-
-DWORD utl::read_file(std::wstring_view path, std::vector<char>& content)
-{
-  content.clear();
-  DWORD error = NO_ERROR;
-  const auto file = CreateFileW(
-    path.data(),
-    FILE_READ_DATA,
-    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-    nullptr,
-    OPEN_ALWAYS,
-    FILE_ATTRIBUTE_NORMAL,
-    nullptr
-  );
-  if (file != INVALID_HANDLE_VALUE)
-  {
-    LARGE_INTEGER li{};
-    if (GetFileSizeEx(file, &li))
-    {
-      if(li.QuadPart <= 128 << 20) // max 128 MB for this api
-      {
-        content.resize((size_t)li.QuadPart);
-        DWORD read = 0;
-        const auto succeeded = ReadFile(
-          file,
-          content.data(),
-          (size_t)li.QuadPart,
-          &read,
-          nullptr
-        );
-        if (!succeeded || read != li.QuadPart)
-          error = GetLastError();
-      }
-      else
-        error = GetLastError();
-    }
-    else
-      error = GetLastError();
-
-    CloseHandle(file);
-  }
-  else
-    error = GetLastError();
-
-  if (error)
-    content.clear();
-  return error;
-}
-
-DWORD utl::write_file(std::wstring_view path, const void* data, size_t size)
-{
-  DWORD error = NO_ERROR;
-  const auto file = CreateFileW(
-    path.data(),
-    FILE_WRITE_DATA,
-    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-    nullptr,
-    CREATE_ALWAYS,
-    FILE_ATTRIBUTE_NORMAL,
-    nullptr
-  );
-  if (file != INVALID_HANDLE_VALUE)
-  {
-    DWORD written = 0;
-    const auto succeeded = WriteFile(
-      file,
-      data,
-      size,
-      &written,
-      nullptr
-    );
-    if (!succeeded || written != size)
-      error = GetLastError();
-
-    CloseHandle(file);
-  }
-  else
-    error = GetLastError();
-
-  return error;
-}
-
-DWORD utl::nuke_file(std::wstring_view path)
-{
-  if (DeleteFileW(path.data()))
-    return NO_ERROR;
-
-  // if the file doesn't exist just pretend we succeeded
-  if (GetLastError() == ERROR_FILE_NOT_FOUND)
-    return NO_ERROR;
-
-  std::wstring wstr{path.data(), path.size()};
-  {
-    // cryptographically secure random for filenames!
-    std::random_device dev{};
-    wstr += L'.';
-    for (auto i = 0; i < 8; ++i) // 8 random cyrillic chars
-      wstr += (wchar_t)(0x0400 | (dev() & 0xFF));
-  }
-  if (!MoveFileExW(path.data(), wstr.data(), 0))
-    return GetLastError();
-
-  MoveFileExW(wstr.data(), nullptr, MOVEFILE_DELAY_UNTIL_REBOOT);
-
-  // we don't care if actual deleting succeeded, the file is moved away anyways
-  return NO_ERROR;
-}
-
-DWORD utl::open_key(PHKEY handle, const wchar_t* path, ULONG desired_access)
-{
-  UNICODE_STRING ustr{};
-  RtlInitUnicodeString(&ustr, path);
-  OBJECT_ATTRIBUTES attr{};
-  InitializeObjectAttributes(
-    &attr,
-    &ustr,
-    OBJ_CASE_INSENSITIVE | OBJ_OPENIF,
-    nullptr,
-    nullptr
-  );
-  auto status = NtOpenKey(
-    (PHANDLE)handle,
-    desired_access | KEY_WOW64_64KEY,
-    &attr
-  );
-  
-  return RtlNtStatusToDosError(status);
-}
-
-DWORD utl::rename_key(const wchar_t* old_path, const wchar_t* new_path)
-{
-  HKEY key{};
-  const auto ret = open_key(&key, old_path, KEY_ALL_ACCESS);
-
-  if (ret)
-    return ret;
-
-  UNICODE_STRING ustr{};
-  RtlInitUnicodeString(&ustr, new_path);
-  const auto status = NtRenameKey(
-    key,
-    &ustr
-  );
-
-  NtClose(key);
-
-  return RtlNtStatusToDosError(status);
-}
-
-DWORD utl::get_KnownDllPath(std::wstring& wstr)
-{
-  wstr.clear();
-  DWORD error = NO_ERROR;
-  auto attr = make_object_attributes(ESTRt(L"\\KnownDlls\\KnownDllPath"));
-  HANDLE link = nullptr;
-  auto status = NtOpenSymbolicLinkObject(&link, GENERIC_READ, &attr);
-  if (NT_SUCCESS(status))
-  {
-    wchar_t path[260]{};
-    UNICODE_STRING ustr{};
-    ustr.Buffer = path;
-    ustr.MaximumLength = sizeof(path) - sizeof(wchar_t);
-    ULONG returned_length = sizeof(path) - sizeof(wchar_t);
-    status = NtQuerySymbolicLinkObject(link, &ustr, &returned_length);
-
-    if(NT_SUCCESS(status))
-      wstr = path;
-    else
-      error = RtlNtStatusToDosError(status);
-
-    NtClose(link);
-  }
-  else
-    error = RtlNtStatusToDosError(status);
-
-  return error;
-}
-
 
 std::wstring utl::ErrorToString(HRESULT error)
 {

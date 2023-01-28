@@ -1,0 +1,34 @@
+﻿; SecureUxTheme - A secure boot compatible in-memory UxTheme patcher
+; Copyright (C) 2022  namazso <admin@namazso.eu>
+; 
+; This library is free software; you can redistribute it and/or
+; modify it under the terms of the GNU Lesser General Public
+; License as published by the Free Software Foundation; either
+; version 2.1 of the License, or (at your option) any later version.
+; 
+; This library is distributed in the hope that it will be useful,
+; but WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+; Lesser General Public License for more details.
+; 
+; You should have received a copy of the GNU Lesser General Public
+; License along with this library; if not, write to the Free Software
+; Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
+EXPORTS
+secureuxtheme_get_state_flags
+secureuxtheme_install
+secureuxtheme_hook_add
+secureuxtheme_hook_remove
+secureuxtheme_hook_test
+secureuxtheme_uninstall
+themetool_init
+themetool_get_manager
+themetool_get_theme_count
+themetool_get_theme
+themetool_set_active
+themetool_theme_get_display_name
+themetool_theme_get_vs_path
+themetool_theme_release
+themetool_signature_check
+themetool_signature_fix
