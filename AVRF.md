@@ -12,7 +12,7 @@ It is a built-in Windows Native debugging mechanism. It is supported everywhere 
 
 You can read about it here -> [MSDN: Application Verifier](http://msdn.microsoft.com/en-us/library/ms220948(v=vs.90).aspx)
 
-And also in the WinDBG documentation -> [!avrf WinDBG command](http://msdn.microsoft.com/en-us/library/windows/hardware/ff562138(v=vs.85).aspx)
+And also in the WinDBG documentation -> [!avrf WinDBG command](http://msdn.microsoft.com/en-us/library/Windows/hardware/ff562138(v=vs.85).aspx)
 
 **What are the requirements to use it?**
 
@@ -196,7 +196,7 @@ Enable Application Verifier for this application, in the same key.
 
 `"GlobalFlag"=dword:00000100`
 
-Where `0x00000100` is `FLG_APPLICATION_VERIFIER` -> [Enable application verifier](http://msdn.microsoft.com/en-us/library/windows/hardware/ff542875(v=vs.85).aspx)
+Where `0x00000100` is `FLG_APPLICATION_VERIFIER` -> [Enable application verifier](http://msdn.microsoft.com/en-us/library/Windows/hardware/ff542875(v=vs.85).aspx)
 
 Example:
 
@@ -349,17 +349,17 @@ Options Selected:
 --------------------------------------------------------------------------------
 
 00:00:00.000: Started "c:\verifier_test\VRTEST.EXE" (process 0x1580) at address 0x00000000FFC20000 by thread 1.
-00:00:00.000: Loaded "c:\windows\System32\NTDLL.DLL" at address 0x0000000076F40000 by thread 1.
-00:00:00.015: Loaded "c:\windows\System32\VERIFIER.DLL" at address 0x000007FEF93B0000 by thread 1.
+00:00:00.000: Loaded "c:\windows\system32\NTDLL.DLL" at address 0x0000000076F40000 by thread 1.
+00:00:00.015: Loaded "c:\windows\system32\VERIFIER.DLL" at address 0x000007FEF93B0000 by thread 1.
 00:00:00.015: Page heap: pid 0x1580: page heap enabled with flags 0x2.
 00:00:00.015: AVRF: VRTEST.EXE: pid 0x1580: flags 0x48004: application verifier enabled
-00:00:00.031: Loaded "c:\windows\System32\DLL.DLL" at address 0x000007FEF9D50000 by thread 1.
+00:00:00.031: Loaded "c:\windows\system32\DLL.DLL" at address 0x000007FEF9D50000 by thread 1.
 00:00:00.031: DLL!DLL_PROCESS_VERIFIER
 00:00:00.031: DLL!RegisterProvider
 00:00:00.031: DLL!Payload()
 00:00:00.031: DLL!DLL_PROCESS_ATTACH
-00:00:00.031: Loaded "c:\windows\System32\KERNEL32.DLL" at address 0x0000000076E20000 by thread 1.
-00:00:00.046: Loaded "c:\windows\System32\KERNELBASE.DLL" at address 0x000007FEFCDD0000 by thread 1.
+00:00:00.031: Loaded "c:\windows\system32\KERNEL32.DLL" at address 0x0000000076E20000 by thread 1.
+00:00:00.046: Loaded "c:\windows\system32\KERNELBASE.DLL" at address 0x000007FEFCDD0000 by thread 1.
 00:00:00.046: VerifierLoadCallback - dll load KERNELBASE.dll, DllBase = 000007FEFCDD0000
 00:00:00.046: VerifierLoadCallback - dll load kernel32.dll, DllBase = 0000000076E20000
 00:00:00.046: DLL!DLL_PROCESS_ATTACH
@@ -368,52 +368,52 @@ Options Selected:
 00:00:00.046: NtQuerySystemInformation(1) = 0
 00:00:00.046: NtQuerySystemInformation(0) = 0
 00:00:00.046: NtQuerySystemInformation(1) = 0
-00:00:00.046: Loaded "c:\windows\System32\USER32.DLL" at address 0x0000000076D20000 by thread 1.
-00:00:00.046: Loaded "c:\windows\System32\GDI32.DLL" at address 0x000007FEFEBD0000 by thread 1.
-00:00:00.046: Loaded "c:\windows\System32\LPK.DLL" at address 0x000007FEFF240000 by thread 1.
-00:00:00.046: Loaded "c:\windows\System32\USP10.DLL" at address 0x000007FEFDAE0000 by thread 1.
-00:00:00.046: Loaded "c:\windows\System32\MSVCRT.DLL" at address 0x000007FEFEF70000 by thread 1.
+00:00:00.046: Loaded "c:\windows\system32\USER32.DLL" at address 0x0000000076D20000 by thread 1.
+00:00:00.046: Loaded "c:\windows\system32\GDI32.DLL" at address 0x000007FEFEBD0000 by thread 1.
+00:00:00.046: Loaded "c:\windows\system32\LPK.DLL" at address 0x000007FEFF240000 by thread 1.
+00:00:00.046: Loaded "c:\windows\system32\USP10.DLL" at address 0x000007FEFDAE0000 by thread 1.
+00:00:00.046: Loaded "c:\windows\system32\MSVCRT.DLL" at address 0x000007FEFEF70000 by thread 1.
 00:00:00.062: VerifierLoadCallback - dll load msvcrt.dll, DllBase = 000007FEFEF70000
 00:00:00.062: VerifierLoadCallback - dll load USP10.dll, DllBase = 000007FEFDAE0000
 00:00:00.062: VerifierLoadCallback - dll load LPK.dll, DllBase = 000007FEFF240000
 00:00:00.062: VerifierLoadCallback - dll load GDI32.dll, DllBase = 000007FEFEBD0000
 00:00:00.062: VerifierLoadCallback - dll load USER32.dll, DllBase = 0000000076D20000
-00:00:00.062: Loaded "c:\windows\System32\SHELL32.DLL" at address 0x000007FEFDD90000 by thread 1.
-00:00:00.062: Loaded "c:\windows\System32\SHLWAPI.DLL" at address 0x000007FEFDD10000 by thread 1.
+00:00:00.062: Loaded "c:\windows\system32\SHELL32.DLL" at address 0x000007FEFDD90000 by thread 1.
+00:00:00.062: Loaded "c:\windows\system32\SHLWAPI.DLL" at address 0x000007FEFDD10000 by thread 1.
 00:00:00.062: VerifierLoadCallback - dll load SHLWAPI.dll, DllBase = 000007FEFDD10000
 00:00:00.062: VerifierLoadCallback - dll load SHELL32.dll, DllBase = 000007FEFDD90000
 00:00:00.062: VerifierLoadCallback - dll load VRTEST.EXE, DllBase = 00000000FFC20000
 00:00:00.062: Entrypoint reached. All implicit modules have been loaded.
-00:00:00.062: Loaded "c:\windows\System32\APPHELP.DLL" at address 0x000007FEFCB70000 by thread 1.
+00:00:00.062: Loaded "c:\windows\system32\APPHELP.DLL" at address 0x000007FEFCB70000 by thread 1.
 00:00:00.078: VerifierLoadCallback - dll load apphelp.dll, DllBase = 000007FEFCB70000
 00:00:00.078: NtQuerySystemInformation(1) = 0
 00:00:00.078: Loaded "c:\windows\apppatch\apppatch64\ACGENRAL.DLL" at address 0x000007FEF2BA0000 by thread 1.
-00:00:00.078: Loaded "c:\windows\System32\SSPICLI.DLL" at address 0x000007FEFCB40000 by thread 1.
-00:00:00.078: Loaded "c:\windows\System32\RPCRT4.DLL" at address 0x000007FEFF010000 by thread 1.
+00:00:00.078: Loaded "c:\windows\system32\SSPICLI.DLL" at address 0x000007FEFCB40000 by thread 1.
+00:00:00.078: Loaded "c:\windows\system32\RPCRT4.DLL" at address 0x000007FEFF010000 by thread 1.
 00:00:00.078: VerifierLoadCallback - dll load RPCRT4.dll, DllBase = 000007FEFF010000
 00:00:00.078: VerifierLoadCallback - dll load SspiCli.dll, DllBase = 000007FEFCB40000
-00:00:00.078: Loaded "c:\windows\System32\OLE32.DLL" at address 0x000007FEFD470000 by thread 1.
+00:00:00.078: Loaded "c:\windows\system32\OLE32.DLL" at address 0x000007FEFD470000 by thread 1.
 00:00:00.093: VerifierLoadCallback - dll load ole32.dll, DllBase = 000007FEFD470000
-00:00:00.093: Loaded "c:\windows\System32\SFC.DLL" at address 0x0000000072F00000 by thread 1.
+00:00:00.093: Loaded "c:\windows\system32\SFC.DLL" at address 0x0000000072F00000 by thread 1.
 00:00:00.093: VerifierLoadCallback - dll load sfc.dll, DllBase = 0000000072F00000
-00:00:00.093: Loaded "c:\windows\System32\SFC_OS.DLL" at address 0x000007FEF84B0000 by thread 1.
+00:00:00.093: Loaded "c:\windows\system32\SFC_OS.DLL" at address 0x000007FEF84B0000 by thread 1.
 00:00:00.093: VerifierLoadCallback - dll load sfc_os.DLL, DllBase = 000007FEF84B0000
-00:00:00.093: Loaded "c:\windows\System32\USERENV.DLL" at address 0x000007FEFCF60000 by thread 1.
-00:00:00.109: Loaded "c:\windows\System32\PROFAPI.DLL" at address 0x000007FEFCD70000 by thread 1.
+00:00:00.093: Loaded "c:\windows\system32\USERENV.DLL" at address 0x000007FEFCF60000 by thread 1.
+00:00:00.109: Loaded "c:\windows\system32\PROFAPI.DLL" at address 0x000007FEFCD70000 by thread 1.
 00:00:00.109: VerifierLoadCallback - dll load profapi.dll, DllBase = 000007FEFCD70000
 00:00:00.109: VerifierLoadCallback - dll load USERENV.dll, DllBase = 000007FEFCF60000
-00:00:00.109: Loaded "c:\windows\System32\DWMAPI.DLL" at address 0x000007FEFB0A0000 by thread 1.
+00:00:00.109: Loaded "c:\windows\system32\DWMAPI.DLL" at address 0x000007FEFB0A0000 by thread 1.
 00:00:00.109: VerifierLoadCallback - dll load dwmapi.dll, DllBase = 000007FEFB0A0000
-00:00:00.109: Loaded "c:\windows\System32\ADVAPI32.DLL" at address 0x000007FEFDC30000 by thread 1.
-00:00:00.109: Loaded "c:\windows\System32\SECHOST.DLL" at address 0x000007FEFEF50000 by thread 1.
+00:00:00.109: Loaded "c:\windows\system32\ADVAPI32.DLL" at address 0x000007FEFDC30000 by thread 1.
+00:00:00.109: Loaded "c:\windows\system32\SECHOST.DLL" at address 0x000007FEFEF50000 by thread 1.
 00:00:00.124: VerifierLoadCallback - dll load sechost.dll, DllBase = 000007FEFEF50000
 00:00:00.124: VerifierLoadCallback - dll load ADVAPI32.dll, DllBase = 000007FEFDC30000
-00:00:00.124: Loaded "c:\windows\System32\MPR.DLL" at address 0x000007FEF80F0000 by thread 1.
+00:00:00.124: Loaded "c:\windows\system32\MPR.DLL" at address 0x000007FEF80F0000 by thread 1.
 00:00:00.124: VerifierLoadCallback - dll load MPR.dll, DllBase = 000007FEF80F0000
 00:00:00.124: VerifierLoadCallback - dll load AcGenral.DLL, DllBase = 000007FEF2BA0000
 00:00:00.124: NtQuerySystemInformation(0) = 0
-00:00:00.124: Loaded "c:\windows\System32\IMM32.DLL" at address 0x000007FEFDA90000 by thread 1.
-00:00:00.140: Loaded "c:\windows\System32\MSCTF.DLL" at address 0x000007FEFD680000 by thread 1.
+00:00:00.124: Loaded "c:\windows\system32\IMM32.DLL" at address 0x000007FEFDA90000 by thread 1.
+00:00:00.140: Loaded "c:\windows\system32\MSCTF.DLL" at address 0x000007FEFD680000 by thread 1.
 00:00:00.140: VerifierLoadCallback - dll load MSCTF.dll, DllBase = 000007FEFD680000
 00:00:00.140: VerifierLoadCallback - dll load IMM32.DLL, DllBase = 000007FEFDA90000
 00:00:00.140: NtQuerySystemInformation(0) = 0
