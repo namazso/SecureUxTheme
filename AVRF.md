@@ -1,34 +1,36 @@
 # Application Verifier Custom Providers
 
-This post isn't innovation or what else. It is renewing of old MSFT blogpost (and some other publication vanished in time and dated back to 2004(?)). Recently have been looking over this method to solve one very specific task, unfortunately it didn't helped me, but I thought it will be interesting to share this (again) with everybody.
+This post isn't innovation or anything. It is a renewing of an old microsoft blogpost (and some other publication vanished in time and dated back to 2004(?)). Recently, I have been looking over this method to solve a very specific task, unfortunately it didn't help me, but I thought it will be interesting to share this (again) with everybody.
 
-Here and below expected target system as x64, however it will be the same for x86-32.
+Expected target system is x64, however it will be the same for x86.
 
-## Short Q&A
+## Information
 
 **What is Application Verifier (AVrf)?**
 
-You can read it description there -> [MSDN: Application Verifier](http://msdn.microsoft.com/en-us/library/ms220948(v=vs.90).aspx)
+It is a built-in Windows Native debugging mechanism. It is supported everywhere in all actual NT versions (and in Windows XP too).
 
-and inside WinDBG documentation -> [!avrf WinDBG command](http://msdn.microsoft.com/en-us/library/windows/hardware/ff562138(v=vs.85).aspx)
+You can read about it here -> [MSDN: Application Verifier](http://msdn.microsoft.com/en-us/library/ms220948(v=vs.90).aspx)
 
-**Where it works?**
+And also in the WinDBG documentation -> [!avrf WinDBG command](http://msdn.microsoft.com/en-us/library/windows/hardware/ff562138(v=vs.85).aspx)
 
-It is built-in Windows Native debugging mechanism. It is supported everywhere in all actual NT versions (and in Windows XP too).
+**What are the requirements to use it?**
 
-**What is the requirement to use it?**
+Administrator rights required, for write access for the IFEO registry key (Image File Execution Options) and the %SystemRoot%\System32 directory.
 
-Administrator rights required to write access for the IFEO registry key (IFEO = Image File Execution Options) and write access to the %systemroot%\system32 directory.
+**How does it work?**
 
-**How does it works?**
+It is a DLL injection based debugging mechanism built on IAT hooking. Windows will give you a free, stable and easy to use hooking mechanism in addition to dll injection at the earlier stage of process loading.
 
-It is DLL injection based debugging mechanism build on IAT hooking. Windows will give you free, absolutely stable and easy to use hooking mechanism in addition to dll injection at the earlier stage of process loading. You create special dll, called custom verifier provider dll, writing for it special DllMain where at special fwdReason you are registering your dll as verifier provider (full example provided). Your code will be loaded just after verifier at earlier process startup time when no other dlls are loaded except ntdll, api set schema and verifier dlls. Note that because nothing else loaded at time when your code gets control you should be using Native API at entry code. Later usual dlls will be loaded (depends on appplication imports of course).
+You have to create a dll, which is called a "Custom Verifier Provider DLL", by writing a dllmain.cpp file, declaring the InitRoutine entrypoint, and registering the dll as a "verifier provider" by checking if the fdwReason parameter is set to `DLL_PROCESS_VERIFIER`, and if so, call `RegisterProvider()`. After that you can add your code. (full example provided). Keep in mind, the InitRoutine entrypoint is the same as the DllMain entrypoint
 
-## AVrf declarations and structures
+Your code will be loaded just after verifier at earlier process startup time when no other dlls are loaded except ntdll, api set schema and verifier dlls. Note that because nothing else loaded at time when your code gets control you should be using Native API at entry code. Later usual dlls will be loaded (depends on appplication imports of course).
 
-Some can be found in old DDK files, but take a hint - this staff isn't documented and may change in next version of Windows. However it didn't changed since XP and works perfectly in Windows 8.1, quite doubtful it anyhow will change in future.
+## AVrf Declarations and Structures
 
-You can rip all these structures from WDK8 mfcs42ud.pdb for some unknown reason it have them all. Maybe can be still found somewhere in WDK or in other PDB files.
+Some of these can be found in old DDK files, but keep in mind, this stuff isn't documented and may change in the next version of Windows. However, it didn't change since XP and works perfectly in Windows 11, quite doubtful that it will change in the future.
+
+You can rip all these structures from WDK8 mfcs42ud.pdb, for unknown reasons this PDB has all of these. Maybe these can be also found somewhere in WDK or in other PDB files.
 
 ### RTL_VERIFIER_PROVIDER_DESCRIPTOR
 
@@ -181,22 +183,22 @@ This event will occur **_before_** any other events.
 
 ## AVrf custom provider installation
 
-Copy your provider dll to the %systemroot%\system32 (note for WOW64 you should use appreciate folder syswow64 and registry keys). Administrator rights required.
+Copy your provider dll to the %SystemRoot%\System32 directory (note: for x86 you have to use the SysWOW64 (SysWOW64 contains x86 files, System32 contains x64 files. No, it is not the other way around.) directory and registry keys). Administrator rights are required.
 
-Install your provider for specific application you want to debug, use IFEO key for this:
-`HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\AppName`
+Install the provider dll for the specific application you want to debug, go to the IFEO key:
+`HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\AppName` (Replace `AppName` with the name of the program, including extension)
 
-In the same key set your dll to the verifier dlls (can be multiple), only name required
+Here, Set the `VerifierDlls` value to the name of your dll (can be multiple), specifying extension is optional.
 
 `"VerifierDlls"="mydll.dll"`
 
-Enable Application Verifier for this application, in the same key set
+Enable Application Verifier for this application, in the same key.
 
 `"GlobalFlag"=dword:00000100`
 
-where 0x00000100 is FLG_APPLICATION_VERIFIER -> [Enable application verifier](http://msdn.microsoft.com/en-us/library/windows/hardware/ff542875(v=vs.85).aspx)
+Where `0x00000100` is `FLG_APPLICATION_VERIFIER` -> [Enable application verifier](http://msdn.microsoft.com/en-us/library/windows/hardware/ff542875(v=vs.85).aspx)
 
-Example
+Example:
 
 ```reg
 [HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\mytest.exe]
@@ -347,17 +349,17 @@ Options Selected:
 --------------------------------------------------------------------------------
 
 00:00:00.000: Started "c:\verifier_test\VRTEST.EXE" (process 0x1580) at address 0x00000000FFC20000 by thread 1.
-00:00:00.000: Loaded "c:\windows\system32\NTDLL.DLL" at address 0x0000000076F40000 by thread 1.
-00:00:00.015: Loaded "c:\windows\system32\VERIFIER.DLL" at address 0x000007FEF93B0000 by thread 1.
+00:00:00.000: Loaded "c:\windows\System32\NTDLL.DLL" at address 0x0000000076F40000 by thread 1.
+00:00:00.015: Loaded "c:\windows\System32\VERIFIER.DLL" at address 0x000007FEF93B0000 by thread 1.
 00:00:00.015: Page heap: pid 0x1580: page heap enabled with flags 0x2.
 00:00:00.015: AVRF: VRTEST.EXE: pid 0x1580: flags 0x48004: application verifier enabled
-00:00:00.031: Loaded "c:\windows\system32\DLL.DLL" at address 0x000007FEF9D50000 by thread 1.
+00:00:00.031: Loaded "c:\windows\System32\DLL.DLL" at address 0x000007FEF9D50000 by thread 1.
 00:00:00.031: DLL!DLL_PROCESS_VERIFIER
 00:00:00.031: DLL!RegisterProvider
 00:00:00.031: DLL!Payload()
 00:00:00.031: DLL!DLL_PROCESS_ATTACH
-00:00:00.031: Loaded "c:\windows\system32\KERNEL32.DLL" at address 0x0000000076E20000 by thread 1.
-00:00:00.046: Loaded "c:\windows\system32\KERNELBASE.DLL" at address 0x000007FEFCDD0000 by thread 1.
+00:00:00.031: Loaded "c:\windows\System32\KERNEL32.DLL" at address 0x0000000076E20000 by thread 1.
+00:00:00.046: Loaded "c:\windows\System32\KERNELBASE.DLL" at address 0x000007FEFCDD0000 by thread 1.
 00:00:00.046: VerifierLoadCallback - dll load KERNELBASE.dll, DllBase = 000007FEFCDD0000
 00:00:00.046: VerifierLoadCallback - dll load kernel32.dll, DllBase = 0000000076E20000
 00:00:00.046: DLL!DLL_PROCESS_ATTACH
@@ -366,52 +368,52 @@ Options Selected:
 00:00:00.046: NtQuerySystemInformation(1) = 0
 00:00:00.046: NtQuerySystemInformation(0) = 0
 00:00:00.046: NtQuerySystemInformation(1) = 0
-00:00:00.046: Loaded "c:\windows\system32\USER32.DLL" at address 0x0000000076D20000 by thread 1.
-00:00:00.046: Loaded "c:\windows\system32\GDI32.DLL" at address 0x000007FEFEBD0000 by thread 1.
-00:00:00.046: Loaded "c:\windows\system32\LPK.DLL" at address 0x000007FEFF240000 by thread 1.
-00:00:00.046: Loaded "c:\windows\system32\USP10.DLL" at address 0x000007FEFDAE0000 by thread 1.
-00:00:00.046: Loaded "c:\windows\system32\MSVCRT.DLL" at address 0x000007FEFEF70000 by thread 1.
+00:00:00.046: Loaded "c:\windows\System32\USER32.DLL" at address 0x0000000076D20000 by thread 1.
+00:00:00.046: Loaded "c:\windows\System32\GDI32.DLL" at address 0x000007FEFEBD0000 by thread 1.
+00:00:00.046: Loaded "c:\windows\System32\LPK.DLL" at address 0x000007FEFF240000 by thread 1.
+00:00:00.046: Loaded "c:\windows\System32\USP10.DLL" at address 0x000007FEFDAE0000 by thread 1.
+00:00:00.046: Loaded "c:\windows\System32\MSVCRT.DLL" at address 0x000007FEFEF70000 by thread 1.
 00:00:00.062: VerifierLoadCallback - dll load msvcrt.dll, DllBase = 000007FEFEF70000
 00:00:00.062: VerifierLoadCallback - dll load USP10.dll, DllBase = 000007FEFDAE0000
 00:00:00.062: VerifierLoadCallback - dll load LPK.dll, DllBase = 000007FEFF240000
 00:00:00.062: VerifierLoadCallback - dll load GDI32.dll, DllBase = 000007FEFEBD0000
 00:00:00.062: VerifierLoadCallback - dll load USER32.dll, DllBase = 0000000076D20000
-00:00:00.062: Loaded "c:\windows\system32\SHELL32.DLL" at address 0x000007FEFDD90000 by thread 1.
-00:00:00.062: Loaded "c:\windows\system32\SHLWAPI.DLL" at address 0x000007FEFDD10000 by thread 1.
+00:00:00.062: Loaded "c:\windows\System32\SHELL32.DLL" at address 0x000007FEFDD90000 by thread 1.
+00:00:00.062: Loaded "c:\windows\System32\SHLWAPI.DLL" at address 0x000007FEFDD10000 by thread 1.
 00:00:00.062: VerifierLoadCallback - dll load SHLWAPI.dll, DllBase = 000007FEFDD10000
 00:00:00.062: VerifierLoadCallback - dll load SHELL32.dll, DllBase = 000007FEFDD90000
 00:00:00.062: VerifierLoadCallback - dll load VRTEST.EXE, DllBase = 00000000FFC20000
 00:00:00.062: Entrypoint reached. All implicit modules have been loaded.
-00:00:00.062: Loaded "c:\windows\system32\APPHELP.DLL" at address 0x000007FEFCB70000 by thread 1.
+00:00:00.062: Loaded "c:\windows\System32\APPHELP.DLL" at address 0x000007FEFCB70000 by thread 1.
 00:00:00.078: VerifierLoadCallback - dll load apphelp.dll, DllBase = 000007FEFCB70000
 00:00:00.078: NtQuerySystemInformation(1) = 0
 00:00:00.078: Loaded "c:\windows\apppatch\apppatch64\ACGENRAL.DLL" at address 0x000007FEF2BA0000 by thread 1.
-00:00:00.078: Loaded "c:\windows\system32\SSPICLI.DLL" at address 0x000007FEFCB40000 by thread 1.
-00:00:00.078: Loaded "c:\windows\system32\RPCRT4.DLL" at address 0x000007FEFF010000 by thread 1.
+00:00:00.078: Loaded "c:\windows\System32\SSPICLI.DLL" at address 0x000007FEFCB40000 by thread 1.
+00:00:00.078: Loaded "c:\windows\System32\RPCRT4.DLL" at address 0x000007FEFF010000 by thread 1.
 00:00:00.078: VerifierLoadCallback - dll load RPCRT4.dll, DllBase = 000007FEFF010000
 00:00:00.078: VerifierLoadCallback - dll load SspiCli.dll, DllBase = 000007FEFCB40000
-00:00:00.078: Loaded "c:\windows\system32\OLE32.DLL" at address 0x000007FEFD470000 by thread 1.
+00:00:00.078: Loaded "c:\windows\System32\OLE32.DLL" at address 0x000007FEFD470000 by thread 1.
 00:00:00.093: VerifierLoadCallback - dll load ole32.dll, DllBase = 000007FEFD470000
-00:00:00.093: Loaded "c:\windows\system32\SFC.DLL" at address 0x0000000072F00000 by thread 1.
+00:00:00.093: Loaded "c:\windows\System32\SFC.DLL" at address 0x0000000072F00000 by thread 1.
 00:00:00.093: VerifierLoadCallback - dll load sfc.dll, DllBase = 0000000072F00000
-00:00:00.093: Loaded "c:\windows\system32\SFC_OS.DLL" at address 0x000007FEF84B0000 by thread 1.
+00:00:00.093: Loaded "c:\windows\System32\SFC_OS.DLL" at address 0x000007FEF84B0000 by thread 1.
 00:00:00.093: VerifierLoadCallback - dll load sfc_os.DLL, DllBase = 000007FEF84B0000
-00:00:00.093: Loaded "c:\windows\system32\USERENV.DLL" at address 0x000007FEFCF60000 by thread 1.
-00:00:00.109: Loaded "c:\windows\system32\PROFAPI.DLL" at address 0x000007FEFCD70000 by thread 1.
+00:00:00.093: Loaded "c:\windows\System32\USERENV.DLL" at address 0x000007FEFCF60000 by thread 1.
+00:00:00.109: Loaded "c:\windows\System32\PROFAPI.DLL" at address 0x000007FEFCD70000 by thread 1.
 00:00:00.109: VerifierLoadCallback - dll load profapi.dll, DllBase = 000007FEFCD70000
 00:00:00.109: VerifierLoadCallback - dll load USERENV.dll, DllBase = 000007FEFCF60000
-00:00:00.109: Loaded "c:\windows\system32\DWMAPI.DLL" at address 0x000007FEFB0A0000 by thread 1.
+00:00:00.109: Loaded "c:\windows\System32\DWMAPI.DLL" at address 0x000007FEFB0A0000 by thread 1.
 00:00:00.109: VerifierLoadCallback - dll load dwmapi.dll, DllBase = 000007FEFB0A0000
-00:00:00.109: Loaded "c:\windows\system32\ADVAPI32.DLL" at address 0x000007FEFDC30000 by thread 1.
-00:00:00.109: Loaded "c:\windows\system32\SECHOST.DLL" at address 0x000007FEFEF50000 by thread 1.
+00:00:00.109: Loaded "c:\windows\System32\ADVAPI32.DLL" at address 0x000007FEFDC30000 by thread 1.
+00:00:00.109: Loaded "c:\windows\System32\SECHOST.DLL" at address 0x000007FEFEF50000 by thread 1.
 00:00:00.124: VerifierLoadCallback - dll load sechost.dll, DllBase = 000007FEFEF50000
 00:00:00.124: VerifierLoadCallback - dll load ADVAPI32.dll, DllBase = 000007FEFDC30000
-00:00:00.124: Loaded "c:\windows\system32\MPR.DLL" at address 0x000007FEF80F0000 by thread 1.
+00:00:00.124: Loaded "c:\windows\System32\MPR.DLL" at address 0x000007FEF80F0000 by thread 1.
 00:00:00.124: VerifierLoadCallback - dll load MPR.dll, DllBase = 000007FEF80F0000
 00:00:00.124: VerifierLoadCallback - dll load AcGenral.DLL, DllBase = 000007FEF2BA0000
 00:00:00.124: NtQuerySystemInformation(0) = 0
-00:00:00.124: Loaded "c:\windows\system32\IMM32.DLL" at address 0x000007FEFDA90000 by thread 1.
-00:00:00.140: Loaded "c:\windows\system32\MSCTF.DLL" at address 0x000007FEFD680000 by thread 1.
+00:00:00.124: Loaded "c:\windows\System32\IMM32.DLL" at address 0x000007FEFDA90000 by thread 1.
+00:00:00.140: Loaded "c:\windows\System32\MSCTF.DLL" at address 0x000007FEFD680000 by thread 1.
 00:00:00.140: VerifierLoadCallback - dll load MSCTF.dll, DllBase = 000007FEFD680000
 00:00:00.140: VerifierLoadCallback - dll load IMM32.DLL, DllBase = 000007FEFDA90000
 00:00:00.140: NtQuerySystemInformation(0) = 0
@@ -435,4 +437,4 @@ ___
 
 ___
 
-Originally at [kernelmode.info](https://www.kernelmode.info/forum/viewtopic.php?f=15&t=3418) by EP_X0FF / hfiref0x ([archived kernelmode.info](https://www.kernelmode.info/forum/viewtopicf4c5.html?f=15&t=3418#), [archive](http://archivecaslytosk.onion/8R9ml)). Broken links were updated.
+Originally at [kernelmode.info](https://www.kernelmode.info/forum/viewtopic.php?f=15&t=3418) by EP_X0FF / hfiref0x ([archived kernelmode.info](https://www.kernelmode.info/forum/viewtopicf4c5.html?f=15&t=3418#), [archive](http://archivecaslytosk.onion/8R9ml)). Broken links were updated, has been reworded to make it easier to understand.
