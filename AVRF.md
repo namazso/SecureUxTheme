@@ -183,10 +183,11 @@ This event will occur **_before_** any other events.
 
 ## AVrf custom provider installation
 
-Copy your provider dll to the %SystemRoot%\System32 directory (note: for x86 you have to use the SysWOW64 (SysWOW64 contains x86 files, System32 contains x64 files. No, it is not the other way around.) directory and registry keys). Administrator rights are required.
+Copy your provider dll to the %SystemRoot%\System32 directory. Note: For hooking into 32-bit processes on a 64-bit system, you have to use the %SystemRoot%\SysWOW64 directory. Administrator rights are required.
+
 
 Install the provider dll for the specific application you want to debug, go to the IFEO key:
-`HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\AppName` (Replace `AppName` with the name of the program, including extension)
+`HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\AppName` (Replace `AppName` with the name of the program, including extension). Note: For hooking into 32-bit processes on a 64-bit system, you have to use the `HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows NT\CurrentVersion\Image File Execution Options` key.
 
 Here, Set the `VerifierDlls` value to the name of your dll (can be multiple), specifying extension is optional.
 
