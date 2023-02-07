@@ -1,34 +1,36 @@
 # Application Verifier Custom Providers
 
-This post isn't innovation or what else. It is renewing of old MSFT blogpost (and some other publication vanished in time and dated back to 2004(?)). Recently have been looking over this method to solve one very specific task, unfortunately it didn't helped me, but I thought it will be interesting to share this (again) with everybody.
+This post isn't innovation or anything. It is a renewing of an old microsoft blogpost (and some other publication vanished in time and dated back to 2004(?)). Recently, I have been looking over this method to solve a very specific task, unfortunately it didn't help me, but I thought it will be interesting to share this (again) with everybody.
 
-Here and below expected target system as x64, however it will be the same for x86-32.
+Expected target system is x64, however it will be the same for x86.
 
-## Short Q&A
+## Information
 
 **What is Application Verifier (AVrf)?**
 
-You can read it description there -> [MSDN: Application Verifier](http://msdn.microsoft.com/en-us/library/ms220948(v=vs.90).aspx)
+It is a built-in Windows Native debugging mechanism. It is supported everywhere in all actual NT versions (and in Windows XP too).
 
-and inside WinDBG documentation -> [!avrf WinDBG command](http://msdn.microsoft.com/en-us/library/windows/hardware/ff562138(v=vs.85).aspx)
+You can read about it here -> [MSDN: Application Verifier](http://msdn.microsoft.com/en-us/library/ms220948(v=vs.90).aspx)
 
-**Where it works?**
+And also in the WinDBG documentation -> [!avrf WinDBG command](http://msdn.microsoft.com/en-us/library/Windows/hardware/ff562138(v=vs.85).aspx)
 
-It is built-in Windows Native debugging mechanism. It is supported everywhere in all actual NT versions (and in Windows XP too).
+**What are the requirements to use it?**
 
-**What is the requirement to use it?**
+Administrator rights required, for write access for the IFEO registry key (Image File Execution Options) and the %SystemRoot%\System32 directory.
 
-Administrator rights required to write access for the IFEO registry key (IFEO = Image File Execution Options) and write access to the %systemroot%\system32 directory.
+**How does it work?**
 
-**How does it works?**
+It is a DLL injection based debugging mechanism built on IAT hooking. Windows will give you a free, stable and easy to use hooking mechanism in addition to dll injection at the earlier stage of process loading.
 
-It is DLL injection based debugging mechanism build on IAT hooking. Windows will give you free, absolutely stable and easy to use hooking mechanism in addition to dll injection at the earlier stage of process loading. You create special dll, called custom verifier provider dll, writing for it special DllMain where at special fwdReason you are registering your dll as verifier provider (full example provided). Your code will be loaded just after verifier at earlier process startup time when no other dlls are loaded except ntdll, api set schema and verifier dlls. Note that because nothing else loaded at time when your code gets control you should be using Native API at entry code. Later usual dlls will be loaded (depends on appplication imports of course).
+You have to create a dll, which is called a "Custom Verifier Provider DLL", by writing a dllmain.cpp file, declaring the InitRoutine entrypoint, and registering the dll as a "verifier provider" by checking if the fdwReason parameter is set to `DLL_PROCESS_VERIFIER`, and if so, call `RegisterProvider()`. After that you can add your code. (full example provided). Keep in mind, the InitRoutine entrypoint is the same as the DllMain entrypoint
 
-## AVrf declarations and structures
+Your code will be loaded just after verifier at earlier process startup time when no other dlls are loaded except ntdll, api set schema and verifier dlls. Note that because nothing else loaded at time when your code gets control you should be using Native API at entry code. Later usual dlls will be loaded (depends on appplication imports of course).
 
-Some can be found in old DDK files, but take a hint - this staff isn't documented and may change in next version of Windows. However it didn't changed since XP and works perfectly in Windows 8.1, quite doubtful it anyhow will change in future.
+## AVrf Declarations and Structures
 
-You can rip all these structures from WDK8 mfcs42ud.pdb for some unknown reason it have them all. Maybe can be still found somewhere in WDK or in other PDB files.
+Some of these can be found in old DDK files, but keep in mind, this stuff isn't documented and may change in the next version of Windows. However, it didn't change since XP and works perfectly in Windows 11, quite doubtful that it will change in the future.
+
+You can rip all these structures from WDK8 mfcs42ud.pdb, for unknown reasons this PDB has all of these. Maybe these can be also found somewhere in WDK or in other PDB files.
 
 ### RTL_VERIFIER_PROVIDER_DESCRIPTOR
 
@@ -181,22 +183,23 @@ This event will occur **_before_** any other events.
 
 ## AVrf custom provider installation
 
-Copy your provider dll to the %systemroot%\system32 (note for WOW64 you should use appreciate folder syswow64 and registry keys). Administrator rights required.
+Copy your provider dll to the %SystemRoot%\System32 directory. Note: For hooking into 32-bit processes on a 64-bit system, you have to use the %SystemRoot%\SysWOW64 directory. Administrator rights are required.
 
-Install your provider for specific application you want to debug, use IFEO key for this:
-`HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\AppName`
 
-In the same key set your dll to the verifier dlls (can be multiple), only name required
+Install the provider dll for the specific application you want to debug, go to the IFEO key:
+`HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\AppName` (Replace `AppName` with the name of the program, including extension). Note: For hooking into 32-bit processes on a 64-bit system, you have to use the `HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows NT\CurrentVersion\Image File Execution Options` key.
+
+Here, Set the `VerifierDlls` value to the name of your dll (can be multiple), specifying extension is optional.
 
 `"VerifierDlls"="mydll.dll"`
 
-Enable Application Verifier for this application, in the same key set
+Enable Application Verifier for this application, in the same key.
 
 `"GlobalFlag"=dword:00000100`
 
-where 0x00000100 is FLG_APPLICATION_VERIFIER -> [Enable application verifier](http://msdn.microsoft.com/en-us/library/windows/hardware/ff542875(v=vs.85).aspx)
+Where `0x00000100` is `FLG_APPLICATION_VERIFIER` -> [Enable application verifier](http://msdn.microsoft.com/en-us/library/Windows/hardware/ff542875(v=vs.85).aspx)
 
-Example
+Example:
 
 ```reg
 [HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\mytest.exe]
@@ -435,4 +438,4 @@ ___
 
 ___
 
-Originally at [kernelmode.info](https://www.kernelmode.info/forum/viewtopic.php?f=15&t=3418) by EP_X0FF / hfiref0x ([archived kernelmode.info](https://www.kernelmode.info/forum/viewtopicf4c5.html?f=15&t=3418#), [archive](http://archivecaslytosk.onion/8R9ml)). Broken links were updated.
+Originally at [kernelmode.info](https://www.kernelmode.info/forum/viewtopic.php?f=15&t=3418) by EP_X0FF / hfiref0x ([archived kernelmode.info](https://www.kernelmode.info/forum/viewtopicf4c5.html?f=15&t=3418#), [archive](http://archivecaslytosk.onion/8R9ml)). Broken links were updated, has been reworded to make it easier to understand.
