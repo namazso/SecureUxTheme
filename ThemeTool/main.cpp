@@ -108,6 +108,21 @@ int APIENTRY wWinMain(
     &DlgProcClassBinder<MainDialog>,
     0
   );
+
+  RECT rc;
+  GetWindowRect(dialog, &rc);
+  
+  const auto screen_width = GetSystemMetrics(SM_CXSCREEN);
+  const auto screen_height = GetSystemMetrics(SM_CYSCREEN);
+  
+  const auto dialog_width = rc.right - rc.left;
+  const auto dialog_height = rc.bottom - rc.top;
+
+  const auto x = (screen_width - dialog_width) / 2;
+  const auto y = (screen_height - dialog_height) / 2;
+
+  SetWindowPos(dialog, nullptr, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER); // Set window position to be both vertically and horizontally centered on the screen.
+  
   ShowWindow(dialog, cmd_show);
 
   MSG msg{};
