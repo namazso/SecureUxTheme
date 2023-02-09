@@ -133,7 +133,7 @@ Naming has been pretty messy in this project, I admit that. Originally this proj
 
 ### Requirements
 
-* Visual Studio 2019 with x86, x64, ARM64 toolchains
+* Visual Studio 2022 (or above) with x86, x64, ARM64 toolchains
 
 ### Compiling
 
