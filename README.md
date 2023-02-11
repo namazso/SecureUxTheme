@@ -147,7 +147,7 @@ Note that the order of the builds is important, building ThemeTool will fail if 
 
 ### Debugging
 
-lmao
+[not fun](https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/debugging-winlogon)
 
 ## License
 
