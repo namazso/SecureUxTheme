@@ -4,7 +4,7 @@
 
 ## About
 
-SecureUxTheme is a software that removes signature verification of styles from Windows.
+SecureUxTheme is a piece of software that removes signature verification of styles from Windows.
 
 ## Features
 
