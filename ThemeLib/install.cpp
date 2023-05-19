@@ -583,7 +583,7 @@ static HRESULT RenameDefaultColors()
       (std::wstring{ kHKLMPrefix } + kCurrentColorsPath + kCurrentColorsName).c_str(),
       (std::wstring{ kHKLMPrefix } + kCurrentColorsPath + kCurrentColorsBackup).c_str()
     );
-    if (result != ERROR_SUCCESS)
+    if (result != ERROR_SUCCESS && result != ERROR_PATH_NOT_FOUND)
       return HRESULT_FROM_WIN32(result);
   }
   HKEY result;
