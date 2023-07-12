@@ -41,20 +41,6 @@ scoop bucket add extras
 scoop install secureuxtheme
 ```
 
-## Download is MALWARE???
-
-Some silly antiviruses tend to flag the tool as malware, because it's unsigned (this method of detection [clearly](https://www.securityweek.com/use-fake-code-signing-certificates-malware-surges) [works](https://www.zdnet.com/article/hackers-are-selling-legitimate-code-signing-certificates-to-evade-malware-detection/) [btw](https://web.archive.org/web/20200720160419/http://signedmalware.org/). I'm submitting all releases before release to Microsoft for analysis if they're detected by Defender, but I can't guarantee the same for all the other AVs. If you have a signing certificate and are willing help signing, please contact me.
-
-### Garbage Antiviruses
-
-Some antiviruses might not detect `ThemeTool.exe` but detect the installed dll (`system32\SecureUxTheme.dll`) and delete it. If this happens your computer will be stuck at the login screen. See the FAQ entry for fixing this, and I'd recommend getting rid of the garbage AV that caused this.
-
-**Because of this, after install you might want to add SecureUxTheme.dll to the exclusions of your antivirus, so it doesn't randomly break your install.**
-
-### But I still don't trust it.
-
-Compile it yourself.
-
 ## LogonUI fix
 
 Locking Windows makes LogonUI reset certain colors and ignore the currently set style. This tool can fix this problem. A picture comparison showing the Task Manager opened after locking Windows without and with the fix can be seen here:
