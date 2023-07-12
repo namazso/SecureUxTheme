@@ -141,7 +141,7 @@
       <LargeAddressAware>true</LargeAddressAware>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
-      <AdditionalDependencies>ntdll.lib;$(SolutionDir)obj\$(Platform)\ntdll.lib</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;ntdllp.lib</AdditionalDependencies>
       <EntryPointSymbol>DllMain@12</EntryPointSymbol>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <GenerateMapFile>true</GenerateMapFile>
@@ -170,7 +170,7 @@
       <LargeAddressAware>true</LargeAddressAware>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
-      <AdditionalDependencies>ntdll.lib;$(SolutionDir)obj\$(Platform)\ntdll.lib</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;ntdllp.lib</AdditionalDependencies>
       <EntryPointSymbol>DllMain</EntryPointSymbol>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <GenerateMapFile>true</GenerateMapFile>
@@ -199,7 +199,7 @@
       <LargeAddressAware>true</LargeAddressAware>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
-      <AdditionalDependencies>ntdll.lib;$(SolutionDir)obj\$(Platform)\ntdll.lib</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;ntdllp.lib</AdditionalDependencies>
       <EntryPointSymbol>DllMain</EntryPointSymbol>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <GenerateMapFile>true</GenerateMapFile>
@@ -228,7 +228,7 @@
       <LargeAddressAware>true</LargeAddressAware>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
-      <AdditionalDependencies>ntdll.lib;$(SolutionDir)obj\$(Platform)\ntdll.lib</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;ntdllp.lib</AdditionalDependencies>
       <EntryPointSymbol>DllMain@12</EntryPointSymbol>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -260,7 +260,7 @@
       <LargeAddressAware>true</LargeAddressAware>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
-      <AdditionalDependencies>ntdll.lib;$(SolutionDir)obj\$(Platform)\ntdll.lib</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;ntdllp.lib</AdditionalDependencies>
       <EntryPointSymbol>DllMain</EntryPointSymbol>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -292,7 +292,7 @@
       <LargeAddressAware>true</LargeAddressAware>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
-      <AdditionalDependencies>ntdll.lib;$(SolutionDir)obj\$(Platform)\ntdll.lib</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;ntdllp.lib</AdditionalDependencies>
       <EntryPointSymbol>DllMain</EntryPointSymbol>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
