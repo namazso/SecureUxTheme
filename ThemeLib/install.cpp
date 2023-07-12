@@ -581,9 +581,9 @@ static HRESULT RenameDefaultColors()
     
     const auto result = rename_key(
       (std::wstring{ kHKLMPrefix } + kCurrentColorsPath + kCurrentColorsName).c_str(),
-      (std::wstring{ kHKLMPrefix } + kCurrentColorsPath + kCurrentColorsBackup).c_str()
+      kCurrentColorsBackup
     );
-    if (result != ERROR_SUCCESS && result != ERROR_PATH_NOT_FOUND)
+    if (result != ERROR_SUCCESS && result != ERROR_FILE_NOT_FOUND)
       return HRESULT_FROM_WIN32(result);
   }
   HKEY result;
@@ -611,7 +611,7 @@ static HRESULT RestoreDefaultColors()
     RegDeleteKeyW(HKEY_LOCAL_MACHINE, (std::wstring{ kCurrentColorsPath } + kCurrentColorsName).c_str());
     rename_key(
       (std::wstring{ kHKLMPrefix } + kCurrentColorsPath + kCurrentColorsBackup).c_str(),
-      (std::wstring{ kHKLMPrefix } + kCurrentColorsPath + kCurrentColorsName).c_str()
+      kCurrentColorsName
     );
   }
   return S_OK;

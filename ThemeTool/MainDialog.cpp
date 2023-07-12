@@ -123,7 +123,7 @@ void MainDialog::Install()
 
   const auto hr = secureuxtheme_install(install_flags);
 
-  Log(ESTRt(L"secureuxtheme_uninstall(%08X) returned %08X"), install_flags, hr);
+  Log(ESTRt(L"secureuxtheme_install(%08X) returned %08X"), install_flags, hr);
 
   if (FAILED(hr))
   {
