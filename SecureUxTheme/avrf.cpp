@@ -172,6 +172,17 @@ NtOpenProcessToken(
 NTSYSAPI
 NTSTATUS
 NTAPI
+NtQueryInformationToken(
+  _In_ HANDLE TokenHandle,
+  _In_ TOKEN_INFORMATION_CLASS TokenInformationClass,
+  _Out_writes_bytes_to_opt_(TokenInformationLength, *ReturnLength) PVOID TokenInformation,
+  _In_ ULONG TokenInformationLength,
+  _Out_ PULONG ReturnLength
+);
+
+NTSYSAPI
+NTSTATUS
+NTAPI
 RtlAppendUnicodeToString(
   _In_      PUNICODE_STRING Destination,
   _In_opt_  PCWSTR Source
@@ -188,7 +199,11 @@ typedef PVOID(NTAPI *PDELAYLOAD_FAILURE_SYSTEM_ROUTINE)(
   (std::add_pointer_t<std::remove_const_t<std::remove_pointer_t<std::decay_t<decltype(s)>>>>)(s) \
 }
 
-#define NtCurrentProcess() (HANDLE(LONG_PTR(-1)))
+#define NtCurrentProcess() ((HANDLE)(LONG_PTR)-1)
+#define NtCurrentThread() ((HANDLE)(LONG_PTR)-2)
+#define NtCurrentSession() ((HANDLE)(LONG_PTR)-3)
+#define NtCurrentProcessToken() ((HANDLE)(LONG_PTR)-4)
+#define NtCurrentThreadToken() ((HANDLE)(LONG_PTR)-5)
 
 EXTERN_C_END
 
@@ -284,57 +299,17 @@ T* get_original_from_hook_address_wrapper(T* fn)
 
 void signal_loaded()
 {
-  // FUCK ATOMS BTW
-
-  constexpr static wchar_t k_event_name[] = L"\\SecureUxTheme_Loaded";
-
-  // Why 1536? Because we must stay below 4096 bytes of stack usage, else the compiler inserts _stkchk
-  wchar_t name_data[1536];
-
-  HANDLE token = nullptr;
-  auto status = NtOpenProcessToken(NtCurrentProcess(), TOKEN_QUERY, &token);
-  if (!NT_SUCCESS(status))
-    return; // whatever
-
-  const auto pRtlGetTokenNamedObjectPath = (decltype(&RtlGetTokenNamedObjectPath))[]
-  {
-    PVOID ntdll = nullptr;
-    PVOID proc = nullptr;
-    RtlPcToFileHeader((PVOID)&RtlPcToFileHeader, &ntdll);
-    if (ntdll)
-    {
-      ANSI_STRING name = RTL_CONSTANT_STRING("RtlGetTokenNamedObjectPath");
-      LdrGetProcedureAddress(ntdll, &name, 0, &proc);
-    }
-    return proc;
-  }();
-
-  if (!pRtlGetTokenNamedObjectPath)
-    return;
-
-  UNICODE_STRING named_objects{};
-
-  // Let's call this totally undocumented function with no example code available anywhere, to get our session's BNO
-  // hopefully kernel shit is set up already for this, since we're running before our own process is considered alive.
-  status = pRtlGetTokenNamedObjectPath(token, nullptr, &named_objects);
-
+  ULONG id{};
+  ULONG ret_len{};
+  auto status = NtQueryInformationToken(NtCurrentProcessToken(), TokenSessionId, &id, sizeof(id), &ret_len);
   if (!NT_SUCCESS(status))
     return;
 
-  if (named_objects.Length > (sizeof(name_data) - sizeof(k_event_name)))
-  {
-    RtlFreeUnicodeString(&named_objects);
-    return;
-  }
-
-  memcpy(name_data, named_objects.Buffer, named_objects.Length);
-  name_data[named_objects.Length / sizeof(wchar_t)] = 0;
-  RtlFreeUnicodeString(&named_objects);
-
-  wcscat(name_data, k_event_name);
+  wchar_t full_name[128];
+  swprintf_s(full_name, L"\\Sessions\\%lu\\BaseNamedObjects\\SecureUxTheme_Loaded", id);
 
   UNICODE_STRING name;
-  RtlInitUnicodeString(&name, name_data);
+  RtlInitUnicodeString(&name, full_name);
 
   OBJECT_ATTRIBUTES attr;
   InitializeObjectAttributes(
