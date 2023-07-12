@@ -21,8 +21,8 @@ Styles must still have a format-wise valid signature appended, it is just not ve
 ## Operating System Support\*
 
 * Windows 8.1
-* Windows 10 (tested: 1507, 1607, 1809, 1903, 1909, 2004, 20H2, 21H1, 21H2, 20348.*)
-* Windows 11 (tested: 21H2)
+* Windows 10
+* Windows 11 (tested: 21H2, 22H2)
 * Future versions\*\*
 
 \* Windows 7 or older will never be supported due to the way themes are implemented.
