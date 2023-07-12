@@ -43,19 +43,3 @@ jobs:
         path: |
           .\bin\Release\Win32\ThemeTool.exe
           .\bin\Release\Win32\ThemeTool.pdb
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-
-    steps:
-      - uses: actions/download-artifact@v3
-        with:
-          name: ThemeTool
-      - name: Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: ThemeTool.exe
-          name: Release ${{ github.ref_name }}
-          prerelease: true
