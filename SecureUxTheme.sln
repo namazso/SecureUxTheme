@@ -4,11 +4,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.3.32819.101
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SecureUxTheme", "SecureUxTheme\SecureUxTheme.vcxproj", "{BBC7C1EF-F94E-48B5-AAF8-6E11FF26A72F}"
-	ProjectSection(ProjectDependencies) = postProject
-		{9EF2EA5B-B660-4F8A-8ECB-F2DBD19B8435} = {9EF2EA5B-B660-4F8A-8ECB-F2DBD19B8435}
-	EndProjectSection
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NtdllCrt", "NtdllCrt\NtdllCrt.vcxproj", "{9EF2EA5B-B660-4F8A-8ECB-F2DBD19B8435}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ThemeTool", "ThemeTool\ThemeTool.vcxproj", "{D281B2E2-BCB9-4E7F-9FF4-312A52E68D94}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -20,7 +15,6 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ThemeDll", "ThemeDll\ThemeDll.vcxproj", "{41AFF3ED-B06C-415B-9BDF-A719FF814FE2}"
 	ProjectSection(ProjectDependencies) = postProject
 		{0253689B-A896-4BC8-B286-05424877ECEA} = {0253689B-A896-4BC8-B286-05424877ECEA}
-		{9EF2EA5B-B660-4F8A-8ECB-F2DBD19B8435} = {9EF2EA5B-B660-4F8A-8ECB-F2DBD19B8435}
 	EndProjectSection
 EndProject
 Global
@@ -45,18 +39,6 @@ Global
 		{BBC7C1EF-F94E-48B5-AAF8-6E11FF26A72F}.Release|Win32.Build.0 = Release|Win32
 		{BBC7C1EF-F94E-48B5-AAF8-6E11FF26A72F}.Release|x64.ActiveCfg = Release|x64
 		{BBC7C1EF-F94E-48B5-AAF8-6E11FF26A72F}.Release|x64.Build.0 = Release|x64
-		{9EF2EA5B-B660-4F8A-8ECB-F2DBD19B8435}.Debug|ARM64.ActiveCfg = Release|ARM64
-		{9EF2EA5B-B660-4F8A-8ECB-F2DBD19B8435}.Debug|ARM64.Build.0 = Release|ARM64
-		{9EF2EA5B-B660-4F8A-8ECB-F2DBD19B8435}.Debug|Win32.ActiveCfg = Release|Win32
-		{9EF2EA5B-B660-4F8A-8ECB-F2DBD19B8435}.Debug|Win32.Build.0 = Release|Win32
-		{9EF2EA5B-B660-4F8A-8ECB-F2DBD19B8435}.Debug|x64.ActiveCfg = Release|x64
-		{9EF2EA5B-B660-4F8A-8ECB-F2DBD19B8435}.Debug|x64.Build.0 = Release|x64
-		{9EF2EA5B-B660-4F8A-8ECB-F2DBD19B8435}.Release|ARM64.ActiveCfg = Release|ARM64
-		{9EF2EA5B-B660-4F8A-8ECB-F2DBD19B8435}.Release|ARM64.Build.0 = Release|ARM64
-		{9EF2EA5B-B660-4F8A-8ECB-F2DBD19B8435}.Release|Win32.ActiveCfg = Release|Win32
-		{9EF2EA5B-B660-4F8A-8ECB-F2DBD19B8435}.Release|Win32.Build.0 = Release|Win32
-		{9EF2EA5B-B660-4F8A-8ECB-F2DBD19B8435}.Release|x64.ActiveCfg = Release|x64
-		{9EF2EA5B-B660-4F8A-8ECB-F2DBD19B8435}.Release|x64.Build.0 = Release|x64
 		{D281B2E2-BCB9-4E7F-9FF4-312A52E68D94}.Debug|ARM64.ActiveCfg = Debug|ARM64
 		{D281B2E2-BCB9-4E7F-9FF4-312A52E68D94}.Debug|Win32.ActiveCfg = Debug|Win32
 		{D281B2E2-BCB9-4E7F-9FF4-312A52E68D94}.Debug|Win32.Build.0 = Debug|Win32
