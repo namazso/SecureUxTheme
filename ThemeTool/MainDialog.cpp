@@ -241,6 +241,13 @@ MainDialog::MainDialog(HWND hDlg, void*)
 
   Static_SetText(_hwnd_STATIC_ASADMIN, PatcherStateText(_is_elevated ? PatcherState::Yes : PatcherState::No));
 
+  Button_SetCheck(_hwnd_CHECK_IGNORE_BACKGROUND,BST_CHECKED);
+  Button_SetCheck(_hwnd_CHECK_IGNORE_COLOR,BST_CHECKED);
+  Button_SetCheck(_hwnd_CHECK_IGNORE_CURSOR,BST_CHECKED);
+  Button_SetCheck(_hwnd_CHECK_IGNORE_DESKTOP_ICONS,BST_CHECKED);
+  Button_SetCheck(_hwnd_CHECK_IGNORE_SOUND,BST_CHECKED);
+  Button_SetCheck(_hwnd_CHECK_IGNORE_SCREENSAVER,BST_CHECKED);
+  
   Button_SetCheck(_hwnd_CHECK_COLORS, BST_CHECKED);
 
   Button_Enable(_hwnd_BUTTON_PATCH, FALSE);
