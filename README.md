@@ -45,7 +45,7 @@ scoop install secureuxtheme
 
 Locking Windows makes LogonUI reset certain colors and ignore the currently set style. This tool can fix this problem. A picture comparison showing the Task Manager opened after locking Windows without and with the fix can be seen here:
 
-![LogonUI problem](resources/logonui_comparison.png)
+![LogonUI problem](https://github.com/user-attachments/assets/dddd3b87-a507-4d8d-bea7-5ac1bb4b8023)
 
 Do note this feature might mess up some high contrast theme features when locking.
 
@@ -53,12 +53,12 @@ Do note this feature might mess up some high contrast theme features when lockin
 
 Program:
 
-![ThemeTool Screenshot](resources/screenshot_themetool.png)
+![ThemeTool Screenshot](https://github.com/user-attachments/assets/44d007ad-fe4e-4e34-b4bc-c8726670a15b)
 
 This is only a tool for enabling custom themes, no actual visual changes will be made.
 Regardless, here's a cool theme for illustration:
 
-![Screenshot](resources/screenshot.png)
+![Screenshot](https://github.com/user-attachments/assets/2c0301f2-8392-426d-9b19-bb29500a0eea)
 
 [Theme used](https://www.deviantart.com/niivu/art/10-Pro-Edition-802720222)
 
