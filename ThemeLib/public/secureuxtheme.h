@@ -23,14 +23,6 @@
 EXTERN_C_START
 
 /**
- * @brief Sets the dll to use for an architecture, needed for update check and install.
- * @param data Byte data for the dll
- * @param size Size of data
- * @param arch Architecture this dll belongs to, one of the @c IMAGE_FILE_MACHINE_ macros
- */
-void secureuxtheme_set_dll_for_arch(LPCVOID data, SIZE_T size, ULONG arch);
-
-/**
  * @brief The dll is installed and set to load in winlogon.exe.
  */
 #define SECUREUXTHEME_STATE_INSTALLED       (ULONG)(1 << 0)

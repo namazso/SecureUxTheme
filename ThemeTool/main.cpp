@@ -51,15 +51,22 @@ std::pair<LPCVOID, SIZE_T> get_resource(HMODULE mod, WORD type, WORD id) {
   return {data, size};
 }
 
-void bind_rcdata_to_arch(HMODULE mod, WORD resid, WORD arch) {
-  const auto res = get_resource(mod, 256, resid);
-  secureuxtheme_set_dll_for_arch(res.first, res.second, arch);
-}
-
-void do_init(HMODULE mod) {
-  bind_rcdata_to_arch(mod, 1, IMAGE_FILE_MACHINE_AMD64);
-  bind_rcdata_to_arch(mod, 2, IMAGE_FILE_MACHINE_ARM64);
-  bind_rcdata_to_arch(mod, 3, IMAGE_FILE_MACHINE_I386);
+static USHORT GetNativeArchitecture() {
+  switch (USER_SHARED_DATA->NativeProcessorArchitecture) {
+  case PROCESSOR_ARCHITECTURE_AMD64:
+    return (USHORT)IMAGE_FILE_MACHINE_AMD64;
+  case PROCESSOR_ARCHITECTURE_ARM:
+    return (USHORT)IMAGE_FILE_MACHINE_ARM;
+  case PROCESSOR_ARCHITECTURE_ARM64:
+    return (USHORT)IMAGE_FILE_MACHINE_ARM64;
+  case PROCESSOR_ARCHITECTURE_IA64:
+    return (USHORT)IMAGE_FILE_MACHINE_IA64;
+  case PROCESSOR_ARCHITECTURE_INTEL:
+    return (USHORT)IMAGE_FILE_MACHINE_I386;
+  default:
+    break;
+  }
+  return 0;
 }
 
 int APIENTRY wWinMain(
@@ -71,7 +78,16 @@ int APIENTRY wWinMain(
   UNREFERENCED_PARAMETER(prev_instance);
   UNREFERENCED_PARAMETER(cmd_line);
 
-  do_init(instance);
+  const auto nth = RtlImageNtHeader(&__ImageBase);
+  if (nth->FileHeader.Machine != GetNativeArchitecture()) {
+    MessageBoxW(
+      nullptr,
+      L"Wrong architecture!",
+      L"Error",
+      MB_OK | MB_ICONERROR
+    );
+    return EXIT_FAILURE;
+  }
 
   MessageBoxW(
     nullptr,

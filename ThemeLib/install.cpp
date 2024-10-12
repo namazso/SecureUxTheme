@@ -15,93 +15,22 @@
 //  License along with this library; if not, write to the Free Software
 //  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-#define WIN32_NO_STATUS
+#define PHNT_VERSION PHNT_WINBLUE
+
+#include <phnt_windows.h>
+
+#include <phnt.h>
 
 #include <secureuxtheme.h>
-
-#include <winternl.h>
-
-#undef WIN32_NO_STATUS
-
-#include <ntstatus.h>
 
 #include <random>
 #include <unordered_map>
 
-// using undocumented stuff is bad
-
-EXTERN_C_START
-
-NTSYSAPI VOID NTAPI RtlGetNtVersionNumbers(
-  _Out_opt_ PULONG NtMajorVersion,
-  _Out_opt_ PULONG NtMinorVersion,
-  _Out_opt_ PULONG NtBuildNumber
-);
-
-NTSYSAPI NTSTATUS NTAPI RtlAdjustPrivilege(
-  _In_ ULONG Privilege,
-  _In_ BOOLEAN Enable,
-  _In_ BOOLEAN Client,
-  _Out_ PBOOLEAN WasEnabled
-);
-
-NTSYSCALLAPI NTSTATUS NTAPI NtOpenKey(
-  _Out_ PHANDLE KeyHandle,
-  _In_ ACCESS_MASK DesiredAccess,
-  _In_ POBJECT_ATTRIBUTES ObjectAttributes
-);
-
-NTSYSCALLAPI NTSTATUS NTAPI NtDeleteValueKey(
-  _In_ HANDLE KeyHandle,
-  _In_ PUNICODE_STRING ValueName
-);
-
-NTSYSCALLAPI NTSTATUS NTAPI NtOpenSymbolicLinkObject(
-  _Out_ PHANDLE LinkHandle,
-  _In_ ACCESS_MASK DesiredAccess,
-  _In_ POBJECT_ATTRIBUTES ObjectAttributes
-);
-
-NTSYSCALLAPI NTSTATUS NTAPI NtQuerySymbolicLinkObject(
-  _In_ HANDLE LinkHandle,
-  _Inout_ PUNICODE_STRING LinkTarget,
-  _Out_opt_ PULONG ReturnedLength
-);
-
-EXTERN_C_END
-
-#define FLG_APPLICATION_VERIFIER (0x100)
-
 static constexpr wchar_t kPatcherDllName[] = L"SecureUxTheme.dll";
 static constexpr wchar_t kIFEO[] = L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\";
 
-static std::unordered_map<ULONG, std::pair<LPCVOID, SIZE_T>> g_dlls;
-
-class unique_redirection_disabler {
-  PVOID OldValue{};
-
-public:
-  unique_redirection_disabler() {
-    Wow64DisableWow64FsRedirection(&OldValue);
-  }
-
-  unique_redirection_disabler(const unique_redirection_disabler&) = delete;
-
-  unique_redirection_disabler(unique_redirection_disabler&& other) noexcept {
-    Wow64DisableWow64FsRedirection(&OldValue);
-    std::swap(OldValue, other.OldValue);
-  }
-
-  ~unique_redirection_disabler() {
-    Wow64RevertWow64FsRedirection(OldValue);
-  }
-
-  unique_redirection_disabler& operator=(const unique_redirection_disabler&) = delete;
-
-  unique_redirection_disabler& operator=(unique_redirection_disabler&& other) noexcept {
-    std::swap(OldValue, other.OldValue);
-    return *this;
-  }
+static constexpr uint8_t kDLL[] = {
+#include <SecureUxTheme.dll.h>
 };
 
 static bool IsLoadedInSession() {
@@ -238,47 +167,22 @@ static DWORD UninstallForExecutable(const wchar_t* executable) {
   return ret;
 }
 
-// Returns native architecture, uses macros IMAGE_FILE_MACHINE_***
-// May be wrong... who knows?? Probably not even Microsoft.
 static USHORT GetNativeArchitecture() {
-  // This is insanity
-
-  static const auto architecture = [] {
-    typedef BOOL(WINAPI * LPFN_ISWOW64PROCESS2)(HANDLE, PUSHORT, PUSHORT);
-
-    const auto kernel32 = GetModuleHandleW(L"kernel32");
-    const auto pIsWow64Process2 = kernel32 ? (LPFN_ISWOW64PROCESS2)GetProcAddress(kernel32, "IsWow64Process2") : nullptr;
-    USHORT ProcessMachine = 0;
-    USHORT NativeMachine = 0;
-
-    // Apparently IsWow64Process2 can fail somehow
-    if (pIsWow64Process2 && pIsWow64Process2(GetCurrentProcess(), &ProcessMachine, &NativeMachine))
-      return NativeMachine;
-
-    SYSTEM_INFO si;
-    // On 64 bit processors that aren't x64 or IA64, GetNativeSystemInfo behaves as GetSystemInfo
-    GetNativeSystemInfo(&si);
-    switch (si.wProcessorArchitecture) {
-    case PROCESSOR_ARCHITECTURE_AMD64:
-      return (USHORT)IMAGE_FILE_MACHINE_AMD64;
-    case PROCESSOR_ARCHITECTURE_ARM:
-      return (USHORT)IMAGE_FILE_MACHINE_ARM;
-    case PROCESSOR_ARCHITECTURE_ARM64: // according to docs this could never happen
-      return (USHORT)IMAGE_FILE_MACHINE_ARM64;
-    case PROCESSOR_ARCHITECTURE_IA64:
-      return (USHORT)IMAGE_FILE_MACHINE_IA64;
-    case PROCESSOR_ARCHITECTURE_INTEL:
-      return (USHORT)IMAGE_FILE_MACHINE_I386;
-    default:
-      break;
-    }
-
-    // I wonder why does IsWow64Process exist when GetNativeSystemInfo can provide same and more, plus it cannot fail
-    // either unlike IsWow64Process which apparently can do so.
-
-    return (USHORT)IMAGE_FILE_MACHINE_UNKNOWN;
-  }();
-  return architecture;
+  switch (USER_SHARED_DATA->NativeProcessorArchitecture) {
+  case PROCESSOR_ARCHITECTURE_AMD64:
+    return (USHORT)IMAGE_FILE_MACHINE_AMD64;
+  case PROCESSOR_ARCHITECTURE_ARM:
+    return (USHORT)IMAGE_FILE_MACHINE_ARM;
+  case PROCESSOR_ARCHITECTURE_ARM64:
+    return (USHORT)IMAGE_FILE_MACHINE_ARM64;
+  case PROCESSOR_ARCHITECTURE_IA64:
+    return (USHORT)IMAGE_FILE_MACHINE_IA64;
+  case PROCESSOR_ARCHITECTURE_INTEL:
+    return (USHORT)IMAGE_FILE_MACHINE_I386;
+  default:
+    break;
+  }
+  return 0;
 }
 
 static OBJECT_ATTRIBUTES MakeObjectAttributes(
@@ -338,8 +242,7 @@ static DWORD GetPatcherDllPath(std::wstring& path) {
 }
 
 static std::pair<LPCVOID, SIZE_T> GetBlob() {
-  const auto entry = g_dlls.find(GetNativeArchitecture());
-  return entry == g_dlls.end() ? std::pair<LPCVOID, SIZE_T>{nullptr, 0} : entry->second;
+  return { std::begin(kDLL), std::size(kDLL) };
 }
 
 static DWORD read_file(std::wstring_view path, std::vector<uint8_t>& content) {
@@ -439,12 +342,7 @@ static DWORD nuke_file(std::wstring_view path) {
   return ERROR_SUCCESS;
 }
 
-void secureuxtheme_set_dll_for_arch(LPCVOID data, SIZE_T size, ULONG arch) {
-  g_dlls[arch] = {data, size};
-}
-
 ULONG secureuxtheme_get_state_flags() {
-  unique_redirection_disabler _disabler{};
   ULONG flags = 0;
   if (IsLoadedInSession())
     flags |= SECUREUXTHEME_STATE_LOADED;
@@ -523,7 +421,8 @@ static HRESULT DeleteDefaultColors() {
 
 static HRESULT InstallInternal(ULONG install_flags) {
   const auto blob = GetBlob();
-  if (!blob.first)
+  const auto nth = RtlImageNtHeader((PVOID)blob.first);
+  if (nth->FileHeader.Machine != GetNativeArchitecture())
     return HRESULT_FROM_WIN32(ERROR_INSTALL_WRONG_PROCESSOR_ARCHITECTURE);
 
   auto hr = secureuxtheme_uninstall();
@@ -571,7 +470,6 @@ static HRESULT InstallInternal(ULONG install_flags) {
 }
 
 HRESULT secureuxtheme_install(ULONG install_flags) {
-  unique_redirection_disabler _disabler{};
   const auto hr = InstallInternal(install_flags);
   if (FAILED(hr))
     secureuxtheme_uninstall();
@@ -579,7 +477,6 @@ HRESULT secureuxtheme_install(ULONG install_flags) {
 }
 
 HRESULT secureuxtheme_uninstall() {
-  unique_redirection_disabler _disabler{};
   auto res = UninstallForExecutable(L"winlogon.exe");
   if (res != ERROR_SUCCESS)
     return HRESULT_FROM_WIN32(res);
@@ -614,16 +511,13 @@ HRESULT secureuxtheme_uninstall() {
 }
 
 HRESULT secureuxtheme_hook_add(LPCWSTR executable) {
-  unique_redirection_disabler _disabler{};
   return HRESULT_FROM_WIN32(InstallForExecutable(executable));
 }
 
 HRESULT secureuxtheme_hook_remove(LPCWSTR executable) {
-  unique_redirection_disabler _disabler{};
   return HRESULT_FROM_WIN32(UninstallForExecutable(executable));
 }
 
 BOOLEAN secureuxtheme_hook_test(LPCWSTR executable) {
-  unique_redirection_disabler _disabler{};
   return IsInstalledForExecutable(executable) ? TRUE : FALSE;
 }

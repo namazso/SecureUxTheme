@@ -147,23 +147,18 @@ static int get_needed_dll_resource_id() {
 }
 
 bool utl::is_elevated() {
-  DWORD result = FALSE;
-  HANDLE token = nullptr;
-  if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) {
-    TOKEN_ELEVATION elevation;
-    DWORD size = sizeof(elevation);
-    if (GetTokenInformation(
-          token,
-          TokenElevation,
-          &elevation,
-          sizeof(elevation),
-          &size
-        ))
-      result = elevation.TokenIsElevated;
-
-    CloseHandle(token);
-  }
-  return !!result;
+  TOKEN_ELEVATION elevation{};
+  ULONG return_length{};
+  auto status = NtQueryInformationToken(
+    NtCurrentProcessToken(),
+    TokenElevation,
+    &elevation,
+    sizeof(elevation),
+    &return_length
+  );
+  if (!NT_SUCCESS(status))
+    return false;
+  return elevation.TokenIsElevated;
 }
 
 const std::pair<std::wstring, std::wstring> utl::session_user() {
