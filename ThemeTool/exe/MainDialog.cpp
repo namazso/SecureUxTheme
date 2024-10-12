@@ -1,16 +1,16 @@
 // SecureUxTheme - A secure boot compatible in-memory UxTheme patcher
 // Copyright (C) 2022  namazso <admin@namazso.eu>
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
@@ -38,7 +38,7 @@ extern "C" NTSYSAPI NTSTATUS NTAPI RtlAdjustPrivilege(
 );
 
 static constexpr wchar_t kHelpText[] =
-LR"(- For any custom themes to work SecureUxTheme or another patcher must be installed
+  LR"(- For any custom themes to work SecureUxTheme or another patcher must be installed
 - Styles need to be signed, the signature just doesn't need to be valid
   - To add an invalid signature to a style select a theme using it and click Patch
 - After install and reboot, there are multiple ways to set themes:
@@ -46,14 +46,13 @@ LR"(- For any custom themes to work SecureUxTheme or another patcher must be ins
   - If "Hook SystemSettings" is enabled you can use "Themes" to set a patched theme
 )";
 static constexpr wchar_t kHelpText2[] =
-LR"(  - You can simply use ThemeTool to patch and apply themes (recommended)
+  LR"(  - You can simply use ThemeTool to patch and apply themes (recommended)
 - To prevent LogonUI from resetting colors either
   - DefaultColors must be renamed / deleted
   - or LogonUI must be hooked
 )";
 
-static std::wstring GetWindowTextStr(HWND hwnd)
-{
+static std::wstring GetWindowTextStr(HWND hwnd) {
   SetLastError(0);
   const auto len = GetWindowTextLengthW(hwnd);
   const auto error = GetLastError();
@@ -65,51 +64,49 @@ static std::wstring GetWindowTextStr(HWND hwnd)
   return str;
 }
 
-void MainDialog::Log(const wchar_t* fmt, ...)
-{
+void MainDialog::Log(const wchar_t* fmt, ...) {
   std::wstring str;
   va_list args;
   va_start(args, fmt);
   utl::vfmt(str, fmt, args);
   va_end(args);
   auto log = GetWindowTextStr(_hwnd_LOG);
-  if(!log.empty())
-    log.append(ESTRt(L"\r\n"));
+  if (!log.empty())
+    log.append(L"\r\n");
   //LARGE_INTEGER li{};
   //QueryPerformanceCounter(&li);
-  
-  const auto ms = std::chrono::duration_cast<std::chrono::milliseconds >(
-  std::chrono::system_clock::now().time_since_epoch()
-    ).count();
+
+  const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::system_clock::now().time_since_epoch()
+  )
+                    .count();
   log.append(std::to_wstring(ms));
-  log.append(ESTRt(L" > "));
+  log.append(L" > ");
   log.append(str);
   SetWindowTextW(_hwnd_LOG, log.c_str());
 }
 
-void MainDialog::Uninstall()
-{
-  Log(ESTRt(L"Uninstall started..."));
+void MainDialog::Uninstall() {
+  Log(L"Uninstall started...");
 
   const auto hr = secureuxtheme_uninstall();
 
-  Log(ESTRt(L"secureuxtheme_uninstall() returned %08X"), hr);
+  Log(L"secureuxtheme_uninstall() returned %08X", hr);
 
   if (FAILED(hr))
     utl::FormattedMessageBox(
       _hwnd,
-      ESTRt(L"Error"),
+      L"Error",
       MB_OK | MB_ICONERROR,
-      ESTRt(L"Uninstall failed. Error: %s"),
+      L"Uninstall failed. Error: %s",
       utl::ErrorToString(hr).c_str()
     );
 
   UpdatePatcherState();
 }
 
-void MainDialog::Install()
-{
-  Log(ESTRt(L"Install started..."));
+void MainDialog::Install() {
+  Log(L"Install started...");
 
   ULONG install_flags{};
   if (BST_CHECKED == Button_GetCheck(_hwnd_CHECK_EXPLORER))
@@ -123,54 +120,43 @@ void MainDialog::Install()
 
   const auto hr = secureuxtheme_install(install_flags);
 
-  Log(ESTRt(L"secureuxtheme_install(%08X) returned %08X"), install_flags, hr);
+  Log(L"secureuxtheme_install(%08X) returned %08X", install_flags, hr);
 
-  if (FAILED(hr))
-  {
+  if (FAILED(hr)) {
     utl::FormattedMessageBox(
       _hwnd,
-      ESTRt(L"Error"),
+      L"Error",
       MB_OK | MB_ICONERROR,
-      ESTRt(L"Install failed. Error: %s"),
+      L"Install failed. Error: %s",
       utl::ErrorToString(hr).c_str()
     );
-  }
-  else
-  {
-    const auto reboot = IDYES == utl::FormattedMessageBox(
-      _hwnd,
-      ESTRt(L"Success"),
-      MB_YESNO,
-      ESTRt(L"Installing succeeded, patcher will be loaded next boot. Do you want to reboot now?")
-    );
+  } else {
+    const auto reboot = IDYES == utl::FormattedMessageBox(_hwnd, L"Success", MB_YESNO, L"Installing succeeded, patcher will be loaded next boot. Do you want to reboot now?");
 
-    if (reboot)
-    {
+    if (reboot) {
       BOOLEAN old = FALSE;
       const auto status = RtlAdjustPrivilege(19, TRUE, FALSE, &old);
-      Log(ESTRt(L"RtlAdjustPrivilege returned %08X"), status);
-      if (!NT_SUCCESS(status))
-      {
+      Log(L"RtlAdjustPrivilege returned %08X", status);
+      if (!NT_SUCCESS(status)) {
         utl::FormattedMessageBox(
           _hwnd,
-          ESTRt(L"Error"),
+          L"Error",
           MB_OK | MB_ICONERROR,
-          ESTRt(L"Adjusting shutdown privilege failed. Error: %s"),
+          L"Adjusting shutdown privilege failed. Error: %s",
           utl::ErrorToString(HRESULT_FROM_WIN32(RtlNtStatusToDosError(status))).c_str()
         );
         return;
       }
 
       const auto succeeded = ExitWindowsEx(EWX_REBOOT, 0);
-      if (!succeeded)
-      {
+      if (!succeeded) {
         const auto ret = GetLastError();
-        Log(ESTRt(L"ExitWindowsEx failed with GetLastError() = %08X"), ret);
+        Log(L"ExitWindowsEx failed with GetLastError() = %08X", ret);
         utl::FormattedMessageBox(
           _hwnd,
-          ESTRt(L"Error"),
+          L"Error",
           MB_OK | MB_ICONERROR,
-          ESTRt(L"Rebooting failed. Error: %s"),
+          L"Rebooting failed. Error: %s",
           utl::ErrorToString(HRESULT_FROM_WIN32(ret)).c_str()
         );
       }
@@ -178,20 +164,18 @@ void MainDialog::Install()
   }
 }
 
-static const wchar_t* PatcherStateText(PatcherState state)
-{
-  static const wchar_t* const text[] = { L"No", L"Yes", L"Probably", L"Outdated" };
+static const wchar_t* PatcherStateText(PatcherState state) {
+  static const wchar_t* const text[] = {L"No", L"Yes", L"Probably", L"Outdated"};
   return text[(size_t)state];
 }
 
-void MainDialog::UpdatePatcherState()
-{
+void MainDialog::UpdatePatcherState() {
   const auto state = secureuxtheme_get_state_flags();
   _is_installed = state & SECUREUXTHEME_STATE_INSTALLED
-    ? (state & SECUREUXTHEME_STATE_CURRENT
-      ? PatcherState::Yes
-      : PatcherState::Outdated)
-    : PatcherState::No;
+                    ? (state & SECUREUXTHEME_STATE_CURRENT
+                         ? PatcherState::Yes
+                         : PatcherState::Outdated)
+                    : PatcherState::No;
   _is_loaded = state & SECUREUXTHEME_STATE_LOADED ? PatcherState::Yes : PatcherState::No;
   _is_logonui = state & SECUREUXTHEME_STATE_LOGONUI_HOOKED ? PatcherState::Yes : PatcherState::No;
   _is_explorer = state & SECUREUXTHEME_STATE_EXPLORER_HOOKED ? PatcherState::Yes : PatcherState::No;
@@ -200,33 +184,29 @@ void MainDialog::UpdatePatcherState()
   UpdatePatcherStateDisplay();
 }
 
-void MainDialog::UpdatePatcherStateDisplay()
-{
-  static constexpr std::pair<PatcherState MainDialog::*, HWND MainDialog::*> statics[] 
-  {
-    { &MainDialog::_is_installed,       &MainDialog::_hwnd_STATIC_INSTALLED       },
-    { &MainDialog::_is_loaded,          &MainDialog::_hwnd_STATIC_LOADED          },
-    { &MainDialog::_is_logonui,         &MainDialog::_hwnd_STATIC_LOGONUI         },
-    { &MainDialog::_is_explorer,        &MainDialog::_hwnd_STATIC_EXPLORER        },
-    { &MainDialog::_is_systemsettings,  &MainDialog::_hwnd_STATIC_SYSTEMSETTINGS  },
+void MainDialog::UpdatePatcherStateDisplay() {
+  static constexpr std::pair<PatcherState MainDialog::*, HWND MainDialog::*> statics[]{
+    {     &MainDialog::_is_installed,      &MainDialog::_hwnd_STATIC_INSTALLED},
+    {        &MainDialog::_is_loaded,         &MainDialog::_hwnd_STATIC_LOADED},
+    {       &MainDialog::_is_logonui,        &MainDialog::_hwnd_STATIC_LOGONUI},
+    {      &MainDialog::_is_explorer,       &MainDialog::_hwnd_STATIC_EXPLORER},
+    {&MainDialog::_is_systemsettings, &MainDialog::_hwnd_STATIC_SYSTEMSETTINGS},
   };
   for (const auto& x : statics)
     SetWindowTextW(this->*x.second, PatcherStateText(this->*x.first));
 }
 
 MainDialog::MainDialog(HWND hDlg, void*)
-  : _hwnd(hDlg)
-{
-
-  Log(ESTRt(L"Version " CI_VERSION));
+    : _hwnd(hDlg) {
+  Log(L"Version " CI_VERSION);
 
   ULONG major = 0, minor = 0, build = 0;
   RtlGetNtVersionNumbers(&major, &minor, &build);
-  Log(ESTRt(L"Running on %d.%d.%d flavor %01X"), major, minor, build & 0xFFFF, build >> 28);
-  
-  Log(ESTRt(L"MainDialog: is_elevated %d"), _is_elevated);
+  Log(L"Running on %d.%d.%d flavor %01X", major, minor, build & 0xFFFF, build >> 28);
 
-  Log(ESTRt(L"Session user: %s Process user: %s"), _session_user.second.c_str(), _process_user.second.c_str());
+  Log(L"MainDialog: is_elevated %d", _is_elevated);
+
+  Log(L"Session user: %s Process user: %s", _session_user.second.c_str(), _process_user.second.c_str());
 
   auto hicon = (HICON)LoadImageW(
     utl::get_instance(),
@@ -246,8 +226,7 @@ MainDialog::MainDialog(HWND hDlg, void*)
   Button_Enable(_hwnd_BUTTON_PATCH, FALSE);
   Button_Enable(_hwnd_BUTTON_APPLY, FALSE);
 
-  if (!_is_elevated)
-  {
+  if (!_is_elevated) {
     ShowWindow(_hwnd_BUTTON_INSTALL, SW_HIDE);
     ShowWindow(_hwnd_BUTTON_UNINSTALL, SW_HIDE);
     ShowWindow(_hwnd_CHECK_COLORS, SW_HIDE);
@@ -255,12 +234,10 @@ MainDialog::MainDialog(HWND hDlg, void*)
     ShowWindow(_hwnd_CHECK_LOGONUI, SW_HIDE);
     ShowWindow(_hwnd_CHECK_SYSTEMSETTINGS, SW_HIDE);
     ShowWindow(_hwnd_BUTTON_HELP, SW_HIDE);
-  }
-  else
-  {
+  } else {
     ShowWindow(_hwnd_STATIC_NOTADMIN, SW_HIDE);
   }
-  
+
 
   ListView_SetExtendedListViewStyle(_hwnd_LIST, LVS_EX_AUTOSIZECOLUMNS | LVS_EX_FULLROWSELECT);
   LVCOLUMN col{};
@@ -277,24 +254,21 @@ MainDialog::MainDialog(HWND hDlg, void*)
   //int iCurrent = 0;
   //g_pThemeManager2->GetCurrentTheme(&iCurrent);
 
-  const auto add_item = [this](LPCTSTR name, LPARAM lparam)
-  {
-    LVITEM lvitem
-    {
+  const auto add_item = [this](LPCWSTR name, LPARAM lparam) {
+    LVITEM lvitem{
       LVIF_PARAM,
       INT_MAX,
       0,
       0,
       0,
-      (LPTSTR)_T("")
+      (LPTSTR) _T("")
     };
     lvitem.lParam = lparam;
     const auto item = ListView_InsertItem(_hwnd_LIST, &lvitem);
-    ListView_SetItemText(_hwnd_LIST, item, 0, (LPTSTR)name);
+    ListView_SetItemText(_hwnd_LIST, item, 0, (LPWSTR)name);
   };
 
-  for (auto i = 0u; i < theme_count; ++i)
-  {
+  for (auto i = 0u; i < theme_count; ++i) {
     ITheme* theme{};
     themetool_get_theme(i, &theme);
     wchar_t name[256]{};
@@ -308,35 +282,31 @@ MainDialog::MainDialog(HWND hDlg, void*)
   UpdatePatcherState();
 }
 
-void MainDialog::SelectTheme(int id)
-{
-  if (id == -1)
-  {
-    Static_SetText(_hwnd_STATIC_STYLE, ESTRt(L"Error: Invalid selection"));
+void MainDialog::SelectTheme(int id) {
+  if (id == -1) {
+    Static_SetText(_hwnd_STATIC_STYLE, L"Error: Invalid selection");
     return;
   }
 
   ITheme* theme = nullptr;
   auto hr = themetool_get_theme(id, &theme);
-  if (FAILED(hr))
-  {
+  if (FAILED(hr)) {
     Static_SetText(_hwnd_STATIC_STYLE, _T(""));
-    Log(ESTRt(L"SelectTheme: themetool_get_theme(%d) failed with %08X"), id, hr);
+    Log(L"SelectTheme: themetool_get_theme(%d) failed with %08X", id, hr);
     return;
   }
 
   wchar_t path[MAX_PATH];
   hr = themetool_theme_get_vs_path(theme, path, std::size(path));
-  if (FAILED(hr))
-  {
+  if (FAILED(hr)) {
     Static_SetText(_hwnd_STATIC_STYLE, _T(""));
-    Log(ESTRt(L"SelectTheme: themetool_theme_get_vs_path failed with %08X"), hr);
+    Log(L"SelectTheme: themetool_theme_get_vs_path failed with %08X", hr);
     if (hr == HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND))
       utl::FormattedMessageBox(
         _hwnd,
-        ESTRt(L"Warning"),
+        L"Warning",
         MB_OK | MB_ICONWARNING,
-        ESTRt(L"Getting visual style path failed!\n\nThis is often caused by incorrectly installed themes. Please make sure you copied all files and folders from the theme distribution before opening an issue.")
+        L"Getting visual style path failed!\n\nThis is often caused by incorrectly installed themes. Please make sure you copied all files and folders from the theme distribution before opening an issue."
       );
     return;
   }
@@ -344,23 +314,19 @@ void MainDialog::SelectTheme(int id)
   Static_SetText(_hwnd_STATIC_STYLE, path);
 
   Button_Enable(_hwnd_BUTTON_APPLY, TRUE);
-  if(path[0] && themetool_signature_check(path) == E_FAIL)
-  {
-    Static_SetText(_hwnd_STATIC_NEEDS_PATCHING, ESTRt(L"Style needs patching"));
-    Button_SetText(_hwnd_BUTTON_APPLY, ESTRt(L"Patch and apply"));
+  if (path[0] && themetool_signature_check(path) == E_FAIL) {
+    Static_SetText(_hwnd_STATIC_NEEDS_PATCHING, L"Style needs patching");
+    Button_SetText(_hwnd_BUTTON_APPLY, L"Patch and apply");
     Button_Enable(_hwnd_BUTTON_PATCH, TRUE);
-  }
-  else
-  {
+  } else {
     Static_SetText(_hwnd_STATIC_NEEDS_PATCHING, _T(""));
-    Button_SetText(_hwnd_BUTTON_APPLY, ESTRt(L"Apply"));
+    Button_SetText(_hwnd_BUTTON_APPLY, L"Apply");
     Button_Enable(_hwnd_BUTTON_PATCH, FALSE);
   }
 }
 
-HRESULT MainDialog::PatchThemeInternal(int id)
-{
-  Log(ESTRt(L"PatchThemeInternal(%d)"), id);
+HRESULT MainDialog::PatchThemeInternal(int id) {
+  Log(L"PatchThemeInternal(%d)", id);
 
   wchar_t path[MAX_PATH]{};
   bool patched = true;
@@ -368,22 +334,16 @@ HRESULT MainDialog::PatchThemeInternal(int id)
   {
     ITheme* theme = nullptr;
     auto result = themetool_get_theme(id, &theme);
-    if (SUCCEEDED(result))
-    {
+    if (SUCCEEDED(result)) {
       result = themetool_theme_get_vs_path(theme, path, std::size(path));
-      if (SUCCEEDED(result))
-      {
+      if (SUCCEEDED(result)) {
         if (path[0] && themetool_signature_check(path) == E_FAIL)
           patched = false;
+      } else {
+        Log(L"themetool_theme_get_vs_path failed with %08X", result);
       }
-      else
-      {
-        Log(ESTRt(L"themetool_theme_get_vs_path failed with %08X"), result);
-      }
-    }
-    else
-    {
-      Log(ESTRt(L"themetool_get_theme(%d) failed with %08X"), id, result);
+    } else {
+      Log(L"themetool_get_theme(%d) failed with %08X", id, result);
       return result;
     }
   }
@@ -395,23 +355,21 @@ HRESULT MainDialog::PatchThemeInternal(int id)
   return fix_result;
 }
 
-void MainDialog::ApplyTheme(int id)
-{
-  Log(ESTRt(L"ApplyTheme(%d)"), id);
+void MainDialog::ApplyTheme(int id) {
+  Log(L"ApplyTheme(%d)", id);
 
   if (id == -1)
     return; // invalid selection... whatever..
 
-  if(_session_user != _process_user)
-  {
+  if (_session_user != _process_user) {
     const auto answer = utl::FormattedMessageBox(
       _hwnd,
-      ESTRt(L"Warning"),
+      L"Warning",
       MB_YESNO | MB_ICONWARNING,
-      ESTRt(LR"(This program is running as "%s", but you're logged in as "%s".
+      LR"(This program is running as "%s", but you're logged in as "%s".
 Setting a theme will apply it to user "%s".
 Please note that setting a theme can be done as a non-administrator account.
-Are you sure you want to continue?)"),
+Are you sure you want to continue?)",
       _process_user.second.c_str(),
       _session_user.second.c_str(),
       _process_user.second.c_str()
@@ -421,24 +379,22 @@ Are you sure you want to continue?)"),
       return;
   }
 
-  if(_is_installed != PatcherState::No)
-  {
+  if (_is_installed != PatcherState::No) {
     const auto fix_result = PatchThemeInternal(id);
 
-    if(!SUCCEEDED(fix_result))
-    {
-      Log(ESTRt(L"sig::fix_file failed: %08X"), fix_result);
+    if (!SUCCEEDED(fix_result)) {
+      Log(L"sig::fix_file failed: %08X", fix_result);
       const auto answer = utl::FormattedMessageBox(
         _hwnd,
-        ESTRt(L"Warning"),
+        L"Warning",
         MB_YESNO | MB_ICONWARNING,
-        ESTRt(LR"(You seem to be using SecureUxTheme, however the selected theme isn't patched, patching it now failed.
+        LR"(You seem to be using SecureUxTheme, however the selected theme isn't patched, patching it now failed.
 %s
 The error encountered was: %s.
-Do you want to continue?)"),
+Do you want to continue?)",
         !_is_elevated
-          ? ESTRt(L"Try executing the tool as administrator.")
-          : ESTRt(L"It seems like we're already elevated. Consider submitting a but report."),
+          ? L"Try executing the tool as administrator."
+          : L"It seems like we're already elevated. Consider submitting a but report.",
         utl::ErrorToString(fix_result).c_str()
       );
 
@@ -446,39 +402,36 @@ Do you want to continue?)"),
         return;
     }
 
-    if(_is_installed == PatcherState::Yes && _is_loaded == PatcherState::No)
-    {
+    if (_is_installed == PatcherState::Yes && _is_loaded == PatcherState::No) {
       const auto answer = utl::FormattedMessageBox(
         _hwnd,
-        ESTRt(L"Warning"),
+        L"Warning",
         MB_YESNO | MB_ICONWARNING,
-        ESTRt(LR"(It seems like SecureUxTheme is installed but not loaded. Custom themes likely won't work.
+        LR"(It seems like SecureUxTheme is installed but not loaded. Custom themes likely won't work.
 Make sure you didn't forget to restart your computer after installing.
-Do you still want to continue?)")
+Do you still want to continue?)"
       );
 
       if (answer == IDNO)
         return;
     }
-  }
-  else
-  {
+  } else {
     const auto answer = utl::FormattedMessageBox(
       _hwnd,
-      ESTRt(L"Warning"),
+      L"Warning",
       MB_YESNO | MB_ICONWARNING,
-      ESTRt(LR"(You seem not to be using SecureUxTheme, and trying to apply a theme.
+      LR"(You seem not to be using SecureUxTheme, and trying to apply a theme.
 This won't work unless another patcher is installed or the theme is signed.
-Are you sure you want to continue?)")
-);
+Are you sure you want to continue?)"
+    );
 
     if (answer == IDNO)
       return;
   }
 
   ULONG apply_flags = 0;
-  
-#define CHECK_FLAG(flag) apply_flags |= Button_GetCheck(_hwnd_CHECK_ ## flag) ? THEMETOOL_APPLY_FLAG_ ## flag : 0
+
+#define CHECK_FLAG(flag) apply_flags |= Button_GetCheck(_hwnd_CHECK_##flag) ? THEMETOOL_APPLY_FLAG_##flag : 0
 
   CHECK_FLAG(IGNORE_BACKGROUND);
   CHECK_FLAG(IGNORE_CURSOR);
@@ -499,38 +452,35 @@ Are you sure you want to continue?)")
     0
   );
 
-  Log(ESTRt(L"ApplyTheme: SetCurrentTheme returned %08X"), result);
+  Log(L"ApplyTheme: SetCurrentTheme returned %08X", result);
 
-  if(FAILED(result))
-  {
+  if (FAILED(result)) {
     utl::FormattedMessageBox(
       _hwnd,
-      ESTRt(L"Error"),
+      L"Error",
       MB_OK | MB_ICONERROR,
-      ESTRt(L"Theme setting failed. The following error was encountered:\r\n%s\r\nConsider submitting a bug report."),
+      L"Theme setting failed. The following error was encountered:\r\n%s\r\nConsider submitting a bug report.",
       utl::ErrorToString(result).c_str()
     );
   }
 }
 
-void MainDialog::PatchTheme(int id)
-{
-  Log(ESTRt(L"PatchTheme(%d)"), id);
+void MainDialog::PatchTheme(int id) {
+  Log(L"PatchTheme(%d)", id);
 
   if (id == -1)
     return; // invalid selection... whatever..
 
   const auto result = PatchThemeInternal(id);
 
-  if (FAILED(result))
-  {
+  if (FAILED(result)) {
     utl::FormattedMessageBox(
       _hwnd,
-      ESTRt(L"Error"),
+      L"Error",
       MB_OK | MB_ICONERROR,
-      ESTRt(L"Patching theme failed. The following error was encountered:\r\n%s\r\n%s"),
+      L"Patching theme failed. The following error was encountered:\r\n%s\r\n%s",
       utl::ErrorToString(result).c_str(),
-      _is_elevated ? ESTRt(L"Consider sending a bug report") : ESTRt(L"Try running the program as Administrator")
+      _is_elevated ? L"Consider sending a bug report" : L"Try running the program as Administrator"
     );
   }
 
@@ -538,12 +488,10 @@ void MainDialog::PatchTheme(int id)
   SelectTheme(id);
 }
 
-int MainDialog::CurrentSelection()
-{
+int MainDialog::CurrentSelection() {
   const auto count = ListView_GetSelectedCount(_hwnd_LIST);
-  if (count != 1)
-  {
-    Log(ESTRt(L"CurrentSelection: count is %d, expected 1"), count);
+  if (count != 1) {
+    Log(L"CurrentSelection: count is %d, expected 1", count);
     return -1;
   }
 
@@ -554,17 +502,14 @@ int MainDialog::CurrentSelection()
   return (int)item.lParam;
 }
 
-INT_PTR MainDialog::DlgProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
+INT_PTR MainDialog::DlgProc(UINT uMsg, WPARAM wParam, LPARAM lParam) {
   UNREFERENCED_PARAMETER(lParam);
-  switch (uMsg)
-  {
+  switch (uMsg) {
   case WM_INITDIALOG:
     return FALSE; // do not select default control
 
   case WM_COMMAND:
-    switch (LOWORD(wParam))
-    {
+    switch (LOWORD(wParam)) {
     case IDOK:
     case IDCLOSE:
     case IDCANCEL:
@@ -575,8 +520,8 @@ INT_PTR MainDialog::DlgProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
       if (HIWORD(wParam) == BN_CLICKED)
         MessageBoxW(
           _hwnd,
-          (std::wstring{ ESTRt(kHelpText) } + ESTRt(kHelpText2)).c_str(),
-          ESTRt(L"Help"),
+          (std::wstring{kHelpText} + kHelpText2).c_str(),
+          L"Help",
           MB_OK
         );
       return TRUE;
@@ -600,28 +545,25 @@ INT_PTR MainDialog::DlgProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
       if (HIWORD(wParam) == BN_CLICKED && Button_GetCheck(_hwnd_CHECK_EXPLORER) == BST_CHECKED)
         MessageBoxW(
           _hwnd,
-          ESTRt(L"Are you sure about this? Hooking explorer on Win10 is rather pointless, and can cause instability, high"
-          L" memory usage and bad performance in explorer. Consider (re-)reading the Help below the checkboxes."),
-          ESTRt(L"Warning"),
+          L"Are you sure about this? Hooking explorer on Win10 is rather pointless, and can cause instability, high"
+          L" memory usage and bad performance in explorer. Consider (re-)reading the Help below the checkboxes.",
+          L"Warning",
           MB_OK | MB_ICONWARNING
         );
       return TRUE;
     }
     break;
 
-  case WM_NOTIFY:
-    {
+  case WM_NOTIFY: {
     const auto nmhdr = (LPNMHDR)lParam;
-    if (nmhdr->idFrom == IDC_LIST && nmhdr->code == LVN_ITEMCHANGED)
-    {
+    if (nmhdr->idFrom == IDC_LIST && nmhdr->code == LVN_ITEMCHANGED) {
       const auto pnmv = (LPNMLISTVIEW)lParam;
-      if (pnmv->uNewState & LVIS_SELECTED)
-      {
+      if (pnmv->uNewState & LVIS_SELECTED) {
         SelectTheme(pnmv->iItem);
         return TRUE;
       }
     }
-    }
+  }
     return FALSE;
 
   case WM_CLOSE:

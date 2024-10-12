@@ -1,16 +1,16 @@
 // SecureUxTheme - A secure boot compatible in-memory UxTheme patcher
 // Copyright (C) 2022  namazso <admin@namazso.eu>
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
@@ -20,13 +20,13 @@
 #include "MainDialog.h"
 #include "utl.h"
 
-#pragma comment(linker, \
-  "\"/manifestdependency:type='Win32' "\
-  "name='Microsoft.Windows.Common-Controls' "\
-  "version='6.0.0.0' "\
-  "processorArchitecture='*' "\
-  "publicKeyToken='6595b64144ccf1df' "\
-  "language='*'\"")
+#pragma comment(linker,                                     \
+                "\"/manifestdependency:type='Win32' "       \
+                "name='Microsoft.Windows.Common-Controls' " \
+                "version='6.0.0.0' "                        \
+                "processorArchitecture='*' "                \
+                "publicKeyToken='6595b64144ccf1df' "        \
+                "language='*'\"")
 
 #pragma comment(lib, "ComCtl32.lib")
 #pragma comment(lib, "Advapi32.lib")
@@ -35,43 +35,39 @@
 // we use the builtin one so all our crt methods aren't resolved from ntdll
 #pragma comment(lib, "ntdll.lib")
 
-std::pair<LPCVOID, SIZE_T> get_resource(HMODULE mod, WORD type, WORD id)
-{
+std::pair<LPCVOID, SIZE_T> get_resource(HMODULE mod, WORD type, WORD id) {
   const auto rc = FindResource(
     mod,
     MAKEINTRESOURCE(id),
     MAKEINTRESOURCE(type)
   );
   if (!rc)
-    return { nullptr, 0 };
+    return {nullptr, 0};
   const auto rc_data = LoadResource(mod, rc);
   const auto size = SizeofResource(mod, rc);
   if (!rc_data)
-    return { nullptr, 0 };
+    return {nullptr, 0};
   const auto data = static_cast<const void*>(LockResource(rc_data));
-  return { data, size };
+  return {data, size};
 }
 
-void bind_resource_to_arch(HMODULE mod, WORD resid, WORD arch)
-{
+void bind_rcdata_to_arch(HMODULE mod, WORD resid, WORD arch) {
   const auto res = get_resource(mod, 256, resid);
   secureuxtheme_set_dll_for_arch(res.first, res.second, arch);
 }
 
-void do_init(HMODULE mod)
-{
-  bind_resource_to_arch(mod, IDR_SECUREUXTHEME_DLL_X86, IMAGE_FILE_MACHINE_I386);
-  bind_resource_to_arch(mod, IDR_SECUREUXTHEME_DLL_X64, IMAGE_FILE_MACHINE_AMD64);
-  bind_resource_to_arch(mod, IDR_SECUREUXTHEME_DLL_ARM64, IMAGE_FILE_MACHINE_ARM64);
+void do_init(HMODULE mod) {
+  bind_rcdata_to_arch(mod, 1, IMAGE_FILE_MACHINE_AMD64);
+  bind_rcdata_to_arch(mod, 2, IMAGE_FILE_MACHINE_ARM64);
+  bind_rcdata_to_arch(mod, 3, IMAGE_FILE_MACHINE_I386);
 }
 
 int APIENTRY wWinMain(
-  _In_ HINSTANCE     instance,
+  _In_ HINSTANCE instance,
   _In_opt_ HINSTANCE prev_instance,
-  _In_ LPWSTR        cmd_line,
-  _In_ int           cmd_show
-)
-{
+  _In_ LPWSTR cmd_line,
+  _In_ int cmd_show
+) {
   UNREFERENCED_PARAMETER(prev_instance);
   UNREFERENCED_PARAMETER(cmd_line);
 
@@ -79,27 +75,26 @@ int APIENTRY wWinMain(
 
   MessageBoxW(
     nullptr,
-    ESTRt(L"This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details."),
-    ESTRt(L"Warranty disclaimer"),
+    L"This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.",
+    L"Warranty disclaimer",
     MB_OK | MB_ICONWARNING
   );
 
-  INITCOMMONCONTROLSEX iccex
-  {
+  INITCOMMONCONTROLSEX iccex{
     sizeof(INITCOMMONCONTROLSEX),
     ICC_WIN95_CLASSES
   };
 
-#define POST_ERROR(...) utl::FormattedMessageBox(nullptr, _T("Error"), MB_OK | MB_ICONERROR, __VA_ARGS__)
+#define POST_ERROR(...) utl::FormattedMessageBox(nullptr, L"Error", MB_OK | MB_ICONERROR, __VA_ARGS__)
 
   if (!InitCommonControlsEx(&iccex))
-    return POST_ERROR(ESTRt(L"InitCommonControlsEx failed, LastError = %08X"), GetLastError());
+    return POST_ERROR(L"InitCommonControlsEx failed, LastError = %08X", GetLastError());
 
   const auto hr = themetool_init();
   if ((uint32_t)hr == (uint32_t)0x80040154)
-    return POST_ERROR(ESTRt(L"themetool_init failed, hr = %08X.\n\nThis is usually caused by corrupted files. Make sure you don't have any other theme patcher installed, and check for corrupted files with sfc /scannow"), hr);
+    return POST_ERROR(L"themetool_init failed, hr = %08X.\n\nThis is usually caused by corrupted files. Make sure you don't have any other theme patcher installed, and check for corrupted files with sfc /scannow", hr);
   if (FAILED(hr))
-    return POST_ERROR(ESTRt(L"themetool_init failed, hr = %08X.\n\n%s"), hr, utl::ErrorToString(hr).c_str());
+    return POST_ERROR(L"themetool_init failed, hr = %08X.\n\n%s", hr, utl::ErrorToString(hr).c_str());
 
   const auto dialog = CreateDialogParam(
     instance,
@@ -130,10 +125,8 @@ int APIENTRY wWinMain(
 
 
   MSG msg{};
-  while (GetMessage(&msg, nullptr, 0, 0))
-  {
-    if (!IsDialogMessage(dialog, &msg))
-    {
+  while (GetMessage(&msg, nullptr, 0, 0)) {
+    if (!IsDialogMessage(dialog, &msg)) {
       TranslateMessage(&msg);
       DispatchMessage(&msg);
     }

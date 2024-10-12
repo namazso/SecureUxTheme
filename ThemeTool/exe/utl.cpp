@@ -1,16 +1,16 @@
 // SecureUxTheme - A secure boot compatible in-memory UxTheme patcher
 // Copyright (C) 2022  namazso <admin@namazso.eu>
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
@@ -25,8 +25,8 @@ NTSTATUS
 NTAPI
 NtOpenKey(
   _Out_ PHANDLE KeyHandle,
-  _In_  ACCESS_MASK DesiredAccess,
-  _In_  POBJECT_ATTRIBUTES ObjectAttributes
+  _In_ ACCESS_MASK DesiredAccess,
+  _In_ POBJECT_ATTRIBUTES ObjectAttributes
 );
 
 NTSYSCALLAPI
@@ -50,15 +50,16 @@ NtQuerySymbolicLinkObject(
 EXTERN_C_END
 
 // Last time instance wasn't just your own PE header's pointer was in 16 bit days.
-HINSTANCE utl::get_instance() { return (HINSTANCE)&__ImageBase; }
+HINSTANCE utl::get_instance() {
+  return (HINSTANCE)&__ImageBase;
+}
 
 static OBJECT_ATTRIBUTES make_object_attributes(
   const wchar_t* ObjectName,
   ULONG Attributes = OBJ_CASE_INSENSITIVE,
   HANDLE RootDirectory = nullptr,
   PSECURITY_DESCRIPTOR SecurityDescriptor = nullptr
-)
-{
+) {
   OBJECT_ATTRIBUTES a;
   UNICODE_STRING ustr;
   RtlInitUnicodeString(&ustr, ObjectName);
@@ -72,35 +73,32 @@ static OBJECT_ATTRIBUTES make_object_attributes(
   return a;
 }
 
-std::pair<const void*, size_t> utl::get_resource(WORD type, WORD id)
-{
+std::pair<const void*, size_t> utl::get_resource(WORD type, WORD id) {
   const auto rc = FindResource(
     get_instance(),
     MAKEINTRESOURCE(id),
     MAKEINTRESOURCE(type)
   );
   if (!rc)
-    return { nullptr, 0 };
+    return {nullptr, 0};
   const auto rc_data = LoadResource(get_instance(), rc);
   const auto size = SizeofResource(get_instance(), rc);
   if (!rc_data)
-    return { nullptr, 0 };
+    return {nullptr, 0};
   const auto data = static_cast<const void*>(LockResource(rc_data));
-  return { data, size };
+  return {data, size};
 }
 
 // Returns native architecture, uses macros IMAGE_FILE_MACHINE_***
 // May be wrong... who knows?? Probably not even Microsoft.
-static USHORT get_native_architecture()
-{
+static USHORT get_native_architecture() {
   // This is insanity
 
-  static const auto architecture = []
-  {
-    typedef BOOL(WINAPI* LPFN_ISWOW64PROCESS2) (HANDLE, PUSHORT, PUSHORT);
+  static const auto architecture = [] {
+    typedef BOOL(WINAPI * LPFN_ISWOW64PROCESS2)(HANDLE, PUSHORT, PUSHORT);
 
-    const auto kernel32 = GetModuleHandleW(ESTRt(L"kernel32"));
-    const auto pIsWow64Process2 = kernel32 ? (LPFN_ISWOW64PROCESS2)GetProcAddress(kernel32, ESTRt("IsWow64Process2")) : nullptr;
+    const auto kernel32 = GetModuleHandleW(L"kernel32");
+    const auto pIsWow64Process2 = kernel32 ? (LPFN_ISWOW64PROCESS2)GetProcAddress(kernel32, "IsWow64Process2") : nullptr;
     USHORT ProcessMachine = 0;
     USHORT NativeMachine = 0;
 
@@ -111,8 +109,7 @@ static USHORT get_native_architecture()
     SYSTEM_INFO si;
     // On 64 bit processors that aren't x64 or IA64, GetNativeSystemInfo behaves as GetSystemInfo
     GetNativeSystemInfo(&si);
-    switch (si.wProcessorArchitecture)
-    {
+    switch (si.wProcessorArchitecture) {
     case PROCESSOR_ARCHITECTURE_AMD64:
       return (USHORT)IMAGE_FILE_MACHINE_AMD64;
     case PROCESSOR_ARCHITECTURE_ARM:
@@ -129,16 +126,14 @@ static USHORT get_native_architecture()
 
     // I wonder why does IsWow64Process exist when GetNativeSystemInfo can provide same and more, plus it cannot fail
     // either unlike IsWow64Process which apparently can do so.
-    
+
     return (USHORT)IMAGE_FILE_MACHINE_UNKNOWN;
   }();
   return architecture;
 }
 
-static int get_needed_dll_resource_id()
-{
-  switch (get_native_architecture())
-  {
+static int get_needed_dll_resource_id() {
+  switch (get_native_architecture()) {
   case IMAGE_FILE_MACHINE_I386:
     return IDR_SECUREUXTHEME_DLL_X86;
   case IMAGE_FILE_MACHINE_AMD64:
@@ -151,21 +146,19 @@ static int get_needed_dll_resource_id()
   return 0;
 }
 
-bool utl::is_elevated()
-{
+bool utl::is_elevated() {
   DWORD result = FALSE;
   HANDLE token = nullptr;
-  if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token))
-  {
+  if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) {
     TOKEN_ELEVATION elevation;
     DWORD size = sizeof(elevation);
     if (GetTokenInformation(
-      token,
-      TokenElevation,
-      &elevation,
-      sizeof(elevation),
-      &size
-    ))
+          token,
+          TokenElevation,
+          &elevation,
+          sizeof(elevation),
+          &size
+        ))
       result = elevation.TokenIsElevated;
 
     CloseHandle(token);
@@ -173,8 +166,7 @@ bool utl::is_elevated()
   return !!result;
 }
 
-const std::pair<std::wstring, std::wstring> utl::session_user()
-{
+const std::pair<std::wstring, std::wstring> utl::session_user() {
   LPWSTR wtsinfo_ptr = nullptr;
   DWORD bytes_returned = 0;
   const auto success = WTSQuerySessionInformationW(
@@ -184,28 +176,25 @@ const std::pair<std::wstring, std::wstring> utl::session_user()
     &wtsinfo_ptr,
     &bytes_returned
   );
-  if (success && wtsinfo_ptr)
-  {
+  if (success && wtsinfo_ptr) {
     const auto wtsinfo = (WTSINFOW*)wtsinfo_ptr;
-    std::wstring username{ wtsinfo->UserName };
-    std::wstring domain{ wtsinfo->Domain };
+    std::wstring username{wtsinfo->UserName};
+    std::wstring domain{wtsinfo->Domain};
     WTSFreeMemory(wtsinfo_ptr);
     return std::make_pair(std::move(domain), std::move(username));
   }
   return {};
 }
 
-const std::pair<std::wstring, std::wstring> utl::process_user()
-{
+const std::pair<std::wstring, std::wstring> utl::process_user() {
   std::pair<std::wstring, std::wstring> pair;
   HANDLE token = nullptr;
-  if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token))
-  {
-    struct data_s
-    {
+  if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) {
+    struct data_s {
       TOKEN_USER user;
       char data[0x800];
     } s;
+
     static_assert(offsetof(data_s, user) == 0, "this is not good");
 
     DWORD size = sizeof(s);
@@ -216,8 +205,7 @@ const std::pair<std::wstring, std::wstring> utl::process_user()
       sizeof(s),
       &size
     );
-    if (success)
-    {
+    if (success) {
       WCHAR username[USERNAME_LENGTH + 1]{};
       DWORD username_len = (DWORD)std::size(username);
       WCHAR domain[DOMAIN_LENGTH + 1]{};
@@ -240,8 +228,7 @@ const std::pair<std::wstring, std::wstring> utl::process_user()
   return pair;
 }
 
-std::wstring utl::ErrorToString(HRESULT error)
-{
+std::wstring utl::ErrorToString(HRESULT error) {
   wchar_t buf[0x1000];
 
   FormatMessageW(
@@ -253,7 +240,7 @@ std::wstring utl::ErrorToString(HRESULT error)
     (DWORD)std::size(buf),
     nullptr
   );
-  std::wstring wstr{ buf };
+  std::wstring wstr{buf};
   const auto pos = wstr.find_last_not_of(L"\r\n");
   if (pos != std::wstring::npos)
     wstr.resize(pos);

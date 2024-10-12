@@ -1,22 +1,24 @@
 //  SecureUxTheme - A secure boot compatible in-memory UxTheme patcher
 //  Copyright (C) 2022  namazso <admin@namazso.eu>
-//  
+//
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
 //  License as published by the Free Software Foundation; either
 //  version 2.1 of the License, or (at your option) any later version.
-//  
+//
 //  This library is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 //  Lesser General Public License for more details.
-//  
+//
 //  You should have received a copy of the GNU Lesser General Public
 //  License along with this library; if not, write to the Free Software
 //  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-#include "../public/secureuxtheme.h"
+#include <secureuxtheme.h>
+
 #include <winternl.h>
+
 #include <random>
 #include <unordered_map>
 
@@ -24,47 +26,32 @@
 
 EXTERN_C_START
 
-NTSYSAPI
-VOID
-NTAPI
-RtlGetNtVersionNumbers(
+NTSYSAPI VOID NTAPI RtlGetNtVersionNumbers(
   _Out_opt_ PULONG NtMajorVersion,
   _Out_opt_ PULONG NtMinorVersion,
   _Out_opt_ PULONG NtBuildNumber
 );
 
-NTSYSAPI
-NTSTATUS
-NTAPI
-RtlAdjustPrivilege(
+NTSYSAPI NTSTATUS NTAPI RtlAdjustPrivilege(
   _In_ ULONG Privilege,
   _In_ BOOLEAN Enable,
   _In_ BOOLEAN Client,
   _Out_ PBOOLEAN WasEnabled
 );
 
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtOpenKey(
+NTSYSCALLAPI NTSTATUS NTAPI NtOpenKey(
   _Out_ PHANDLE KeyHandle,
-  _In_  ACCESS_MASK DesiredAccess,
-  _In_  POBJECT_ATTRIBUTES ObjectAttributes
+  _In_ ACCESS_MASK DesiredAccess,
+  _In_ POBJECT_ATTRIBUTES ObjectAttributes
 );
 
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtOpenSymbolicLinkObject(
+NTSYSCALLAPI NTSTATUS NTAPI NtOpenSymbolicLinkObject(
   _Out_ PHANDLE LinkHandle,
   _In_ ACCESS_MASK DesiredAccess,
   _In_ POBJECT_ATTRIBUTES ObjectAttributes
 );
 
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtQuerySymbolicLinkObject(
+NTSYSCALLAPI NTSTATUS NTAPI NtQuerySymbolicLinkObject(
   _In_ HANDLE LinkHandle,
   _Inout_ PUNICODE_STRING LinkTarget,
   _Out_opt_ PULONG ReturnedLength
@@ -83,39 +70,34 @@ static constexpr wchar_t kCurrentColorsBackup[] = L"DefaultColors_backup";
 
 static std::unordered_map<ULONG, std::pair<LPCVOID, SIZE_T>> g_dlls;
 
-class unique_redirection_disabler
-{
+class unique_redirection_disabler {
   PVOID OldValue{};
+
 public:
-  unique_redirection_disabler()
-  {
+  unique_redirection_disabler() {
     Wow64DisableWow64FsRedirection(&OldValue);
   }
 
   unique_redirection_disabler(const unique_redirection_disabler&) = delete;
 
-  unique_redirection_disabler(unique_redirection_disabler&& other) noexcept
-  {
+  unique_redirection_disabler(unique_redirection_disabler&& other) noexcept {
     Wow64DisableWow64FsRedirection(&OldValue);
     std::swap(OldValue, other.OldValue);
   }
 
-  ~unique_redirection_disabler()
-  {
+  ~unique_redirection_disabler() {
     Wow64RevertWow64FsRedirection(OldValue);
   }
 
   unique_redirection_disabler& operator=(const unique_redirection_disabler&) = delete;
 
-  unique_redirection_disabler& operator=(unique_redirection_disabler&& other) noexcept
-  {
+  unique_redirection_disabler& operator=(unique_redirection_disabler&& other) noexcept {
     std::swap(OldValue, other.OldValue);
     return *this;
   }
 };
 
-static bool IsLoadedInSession()
-{
+static bool IsLoadedInSession() {
   const auto h = OpenEventW(
     SYNCHRONIZE,
     FALSE,
@@ -127,9 +109,8 @@ static bool IsLoadedInSession()
   return true;
 }
 
-static bool IsInstalledForExecutable(const wchar_t* executable)
-{
-  const auto subkey = std::wstring{ kIFEO } + executable;
+static bool IsInstalledForExecutable(const wchar_t* executable) {
+  const auto subkey = std::wstring{kIFEO} + executable;
   DWORD GlobalFlag = 0;
   DWORD GlobalFlag_size = sizeof(GlobalFlag);
   RegGetValueW(
@@ -156,9 +137,8 @@ static bool IsInstalledForExecutable(const wchar_t* executable)
   return GlobalFlag & FLG_APPLICATION_VERIFIER && 0 == _wcsicmp(VerifierDlls, kPatcherDllName);
 }
 
-static DWORD InstallForExecutable(const wchar_t* executable)
-{
-  const auto subkey = std::wstring{ kIFEO } + executable;
+static DWORD InstallForExecutable(const wchar_t* executable) {
+  const auto subkey = std::wstring{kIFEO} + executable;
   DWORD GlobalFlag = 0;
   DWORD GlobalFlag_size = sizeof(GlobalFlag);
   // we don't care if it fails
@@ -180,8 +160,7 @@ static DWORD InstallForExecutable(const wchar_t* executable)
     &GlobalFlag,
     sizeof(GlobalFlag)
   );
-  if (!ret)
-  {
+  if (!ret) {
     ret = RegSetKeyValueW(
       HKEY_LOCAL_MACHINE,
       subkey.c_str(),
@@ -194,9 +173,8 @@ static DWORD InstallForExecutable(const wchar_t* executable)
   return ret;
 }
 
-static DWORD UninstallForExecutable(const wchar_t* executable)
-{
-  const auto subkey = std::wstring{ kIFEO } + executable;
+static DWORD UninstallForExecutable(const wchar_t* executable) {
+  const auto subkey = std::wstring{kIFEO} + executable;
   DWORD GlobalFlag = 0;
   DWORD GlobalFlag_size = sizeof(GlobalFlag);
   // we don't care if it fails
@@ -211,16 +189,13 @@ static DWORD UninstallForExecutable(const wchar_t* executable)
   );
   GlobalFlag &= ~FLG_APPLICATION_VERIFIER;
   DWORD ret = ERROR_SUCCESS;
-  if (!GlobalFlag)
-  {
+  if (!GlobalFlag) {
     ret = RegDeleteKeyValueW(
       HKEY_LOCAL_MACHINE,
       subkey.c_str(),
       L"GlobalFlag"
     );
-  }
-  else
-  {
+  } else {
     ret = RegSetKeyValueW(
       HKEY_LOCAL_MACHINE,
       subkey.c_str(),
@@ -242,8 +217,7 @@ static DWORD UninstallForExecutable(const wchar_t* executable)
     &GlobalFlag,
     &GlobalFlag_size
   );
-  if (!(GlobalFlag & FLG_APPLICATION_VERIFIER))
-  {
+  if (!(GlobalFlag & FLG_APPLICATION_VERIFIER)) {
     // FLG_APPLICATION_VERIFIER is not set, we don't care how we got here, nor if we succeed deleting VerifierDlls
     ret = ERROR_SUCCESS;
 
@@ -259,13 +233,11 @@ static DWORD UninstallForExecutable(const wchar_t* executable)
 
 // Returns native architecture, uses macros IMAGE_FILE_MACHINE_***
 // May be wrong... who knows?? Probably not even Microsoft.
-static USHORT GetNativeArchitecture()
-{
+static USHORT GetNativeArchitecture() {
   // This is insanity
 
-  static const auto architecture = []
-  {
-    typedef BOOL(WINAPI* LPFN_ISWOW64PROCESS2) (HANDLE, PUSHORT, PUSHORT);
+  static const auto architecture = [] {
+    typedef BOOL(WINAPI * LPFN_ISWOW64PROCESS2)(HANDLE, PUSHORT, PUSHORT);
 
     const auto kernel32 = GetModuleHandleW(L"kernel32");
     const auto pIsWow64Process2 = kernel32 ? (LPFN_ISWOW64PROCESS2)GetProcAddress(kernel32, "IsWow64Process2") : nullptr;
@@ -279,8 +251,7 @@ static USHORT GetNativeArchitecture()
     SYSTEM_INFO si;
     // On 64 bit processors that aren't x64 or IA64, GetNativeSystemInfo behaves as GetSystemInfo
     GetNativeSystemInfo(&si);
-    switch (si.wProcessorArchitecture)
-    {
+    switch (si.wProcessorArchitecture) {
     case PROCESSOR_ARCHITECTURE_AMD64:
       return (USHORT)IMAGE_FILE_MACHINE_AMD64;
     case PROCESSOR_ARCHITECTURE_ARM:
@@ -308,8 +279,7 @@ static OBJECT_ATTRIBUTES MakeObjectAttributes(
   ULONG Attributes = OBJ_CASE_INSENSITIVE,
   HANDLE RootDirectory = nullptr,
   PSECURITY_DESCRIPTOR SecurityDescriptor = nullptr
-)
-{
+) {
   OBJECT_ATTRIBUTES a;
   UNICODE_STRING ustr;
   RtlInitUnicodeString(&ustr, ObjectName);
@@ -323,15 +293,13 @@ static OBJECT_ATTRIBUTES MakeObjectAttributes(
   return a;
 }
 
-static DWORD GetKnownDllPath(std::wstring& wstr)
-{
+static DWORD GetKnownDllPath(std::wstring& wstr) {
   wstr.clear();
   DWORD error = NO_ERROR;
   auto attr = MakeObjectAttributes(L"\\KnownDlls\\KnownDllPath");
   HANDLE link = nullptr;
   auto status = NtOpenSymbolicLinkObject(&link, GENERIC_READ, &attr);
-  if (NT_SUCCESS(status))
-  {
+  if (NT_SUCCESS(status)) {
     wchar_t path[260]{};
     UNICODE_STRING ustr{};
     ustr.Buffer = path;
@@ -345,15 +313,13 @@ static DWORD GetKnownDllPath(std::wstring& wstr)
       error = RtlNtStatusToDosError(status);
 
     NtClose(link);
-  }
-  else
+  } else
     error = RtlNtStatusToDosError(status);
 
   return error;
 }
 
-static DWORD GetPatcherDllPath(std::wstring& path)
-{
+static DWORD GetPatcherDllPath(std::wstring& path) {
   path = {};
   const auto status = GetKnownDllPath(path);
   if (status != ERROR_SUCCESS)
@@ -364,14 +330,12 @@ static DWORD GetPatcherDllPath(std::wstring& path)
   return ERROR_SUCCESS;
 }
 
-static std::pair<LPCVOID, SIZE_T> GetBlob()
-{
+static std::pair<LPCVOID, SIZE_T> GetBlob() {
   const auto entry = g_dlls.find(GetNativeArchitecture());
-  return entry == g_dlls.end() ? std::pair<LPCVOID, SIZE_T>{ nullptr, 0 } : entry->second;
+  return entry == g_dlls.end() ? std::pair<LPCVOID, SIZE_T>{nullptr, 0} : entry->second;
 }
 
-DWORD open_key(PHKEY handle, const wchar_t* path, ULONG desired_access)
-{
+DWORD open_key(PHKEY handle, const wchar_t* path, ULONG desired_access) {
   UNICODE_STRING ustr{};
   RtlInitUnicodeString(&ustr, path);
   OBJECT_ATTRIBUTES attr{};
@@ -391,8 +355,7 @@ DWORD open_key(PHKEY handle, const wchar_t* path, ULONG desired_access)
   return RtlNtStatusToDosError(status);
 }
 
-DWORD rename_key(const wchar_t* old_path, const wchar_t* new_path)
-{
+DWORD rename_key(const wchar_t* old_path, const wchar_t* new_path) {
   HKEY key{};
   const auto ret = open_key(&key, old_path, KEY_ALL_ACCESS);
 
@@ -411,9 +374,7 @@ DWORD rename_key(const wchar_t* old_path, const wchar_t* new_path)
   return RtlNtStatusToDosError(status);
 }
 
-
-static DWORD read_file(std::wstring_view path, std::vector<uint8_t>& content)
-{
+static DWORD read_file(std::wstring_view path, std::vector<uint8_t>& content) {
   content.clear();
   DWORD error = NO_ERROR;
   const auto file = CreateFileW(
@@ -425,11 +386,9 @@ static DWORD read_file(std::wstring_view path, std::vector<uint8_t>& content)
     FILE_ATTRIBUTE_NORMAL,
     nullptr
   );
-  if (file != INVALID_HANDLE_VALUE)
-  {
+  if (file != INVALID_HANDLE_VALUE) {
     LARGE_INTEGER li{};
-    if (GetFileSizeEx(file, &li))
-    {
+    if (GetFileSizeEx(file, &li)) {
       if (li.QuadPart <= 128 << 20) // max 128 MB for this api
       {
         content.resize((size_t)li.QuadPart);
@@ -443,16 +402,13 @@ static DWORD read_file(std::wstring_view path, std::vector<uint8_t>& content)
         );
         if (!succeeded || read != li.QuadPart)
           error = GetLastError();
-      }
-      else
+      } else
         error = GetLastError();
-    }
-    else
+    } else
       error = GetLastError();
 
     CloseHandle(file);
-  }
-  else
+  } else
     error = GetLastError();
 
   if (error)
@@ -460,8 +416,7 @@ static DWORD read_file(std::wstring_view path, std::vector<uint8_t>& content)
   return error;
 }
 
-static DWORD write_file(std::wstring_view path, const void* data, size_t size)
-{
+static DWORD write_file(std::wstring_view path, const void* data, size_t size) {
   DWORD error = NO_ERROR;
   const auto file = CreateFileW(
     path.data(),
@@ -472,8 +427,7 @@ static DWORD write_file(std::wstring_view path, const void* data, size_t size)
     FILE_ATTRIBUTE_NORMAL,
     nullptr
   );
-  if (file != INVALID_HANDLE_VALUE)
-  {
+  if (file != INVALID_HANDLE_VALUE) {
     DWORD written = 0;
     const auto succeeded = WriteFile(
       file,
@@ -486,15 +440,13 @@ static DWORD write_file(std::wstring_view path, const void* data, size_t size)
       error = GetLastError();
 
     CloseHandle(file);
-  }
-  else
+  } else
     error = GetLastError();
 
   return error;
 }
 
-static DWORD nuke_file(std::wstring_view path)
-{
+static DWORD nuke_file(std::wstring_view path) {
   if (DeleteFileW(path.data()))
     return ERROR_SUCCESS;
 
@@ -502,7 +454,7 @@ static DWORD nuke_file(std::wstring_view path)
   if (GetLastError() == ERROR_FILE_NOT_FOUND)
     return ERROR_SUCCESS;
 
-  std::wstring wstr{ path.data(), path.size() };
+  std::wstring wstr{path.data(), path.size()};
   {
     // cryptographically secure random for filenames!
     std::random_device dev{};
@@ -519,25 +471,21 @@ static DWORD nuke_file(std::wstring_view path)
   return ERROR_SUCCESS;
 }
 
-void secureuxtheme_set_dll_for_arch(LPCVOID data, SIZE_T size, ULONG arch)
-{
-  g_dlls[arch] = { data, size };
+void secureuxtheme_set_dll_for_arch(LPCVOID data, SIZE_T size, ULONG arch) {
+  g_dlls[arch] = {data, size};
 }
 
-ULONG secureuxtheme_get_state_flags()
-{
+ULONG secureuxtheme_get_state_flags() {
   unique_redirection_disabler _disabler{};
   ULONG flags = 0;
   if (IsLoadedInSession())
     flags |= SECUREUXTHEME_STATE_LOADED;
   std::wstring path{};
   auto res = GetPatcherDllPath(path);
-  if (res == ERROR_SUCCESS)
-  {
+  if (res == ERROR_SUCCESS) {
     std::vector<uint8_t> content;
     res = read_file(path, content);
-    if (res == ERROR_SUCCESS && !content.empty() && IsInstalledForExecutable(L"winlogon.exe"))
-    {
+    if (res == ERROR_SUCCESS && !content.empty() && IsInstalledForExecutable(L"winlogon.exe")) {
       flags |= SECUREUXTHEME_STATE_INSTALLED;
       const auto blob = GetBlob();
       if (blob.first && content.size() == blob.second && 0 == memcmp(content.data(), blob.first, content.size()))
@@ -553,34 +501,23 @@ ULONG secureuxtheme_get_state_flags()
   return flags;
 }
 
-static bool IsValidDefaultColors(const wchar_t* default_colors)
-{
+static bool IsValidDefaultColors(const wchar_t* default_colors) {
   DWORD ActiveTitle{};
-  DWORD ActiveTitle_size{ sizeof(ActiveTitle) };
-  return ERROR_SUCCESS == RegGetValueW(
-    HKEY_LOCAL_MACHINE,
-    (std::wstring{ kCurrentColorsPath } + default_colors + L"\\Standard").c_str(),
-    L"ActiveTitle",
-    RRF_RT_REG_DWORD | RRF_ZEROONFAILURE,
-    nullptr,
-    &ActiveTitle,
-    &ActiveTitle_size
-  );
+  DWORD ActiveTitle_size{sizeof(ActiveTitle)};
+  return ERROR_SUCCESS == RegGetValueW(HKEY_LOCAL_MACHINE, (std::wstring{kCurrentColorsPath} + default_colors + L"\\Standard").c_str(), L"ActiveTitle", RRF_RT_REG_DWORD | RRF_ZEROONFAILURE, nullptr, &ActiveTitle, &ActiveTitle_size);
 }
 
-static HRESULT RenameDefaultColors()
-{
+static HRESULT RenameDefaultColors() {
   const auto current_valid = IsValidDefaultColors(kCurrentColorsName);
-  
-  if (current_valid)
-  {
+
+  if (current_valid) {
     // we need to do something about current one.
 
     // delete backup if any exists for good measure
-    RegDeleteKeyW(HKEY_LOCAL_MACHINE, (std::wstring{ kCurrentColorsPath } + kCurrentColorsBackup).c_str());
-    
+    RegDeleteKeyW(HKEY_LOCAL_MACHINE, (std::wstring{kCurrentColorsPath} + kCurrentColorsBackup).c_str());
+
     const auto result = rename_key(
-      (std::wstring{ kHKLMPrefix } + kCurrentColorsPath + kCurrentColorsName).c_str(),
+      (std::wstring{kHKLMPrefix} + kCurrentColorsPath + kCurrentColorsName).c_str(),
       kCurrentColorsBackup
     );
     if (result != ERROR_SUCCESS && result != ERROR_FILE_NOT_FOUND)
@@ -588,37 +525,34 @@ static HRESULT RenameDefaultColors()
   }
   HKEY result;
   result = nullptr;
-  RegCreateKeyW(HKEY_LOCAL_MACHINE, (std::wstring{ kCurrentColorsPath } + kCurrentColorsName).c_str(), &result);
+  RegCreateKeyW(HKEY_LOCAL_MACHINE, (std::wstring{kCurrentColorsPath} + kCurrentColorsName).c_str(), &result);
   RegCloseKey(result);
   result = nullptr;
-  RegCreateKeyW(HKEY_LOCAL_MACHINE, (std::wstring{ kCurrentColorsPath } + kCurrentColorsName + L"\\HighContrast").c_str(), &result);
+  RegCreateKeyW(HKEY_LOCAL_MACHINE, (std::wstring{kCurrentColorsPath} + kCurrentColorsName + L"\\HighContrast").c_str(), &result);
   RegCloseKey(result);
   result = nullptr;
-  RegCreateKeyW(HKEY_LOCAL_MACHINE, (std::wstring{ kCurrentColorsPath } + kCurrentColorsName + L"\\Standard").c_str(), &result);
+  RegCreateKeyW(HKEY_LOCAL_MACHINE, (std::wstring{kCurrentColorsPath} + kCurrentColorsName + L"\\Standard").c_str(), &result);
   RegCloseKey(result);
   result = nullptr;
   return S_OK;
 }
 
-static HRESULT RestoreDefaultColors()
-{
+static HRESULT RestoreDefaultColors() {
   // We ignore failures here because it's not a big edeal
 
   const auto current_valid = IsValidDefaultColors(kCurrentColorsName);
   const auto backup_valid = IsValidDefaultColors(kCurrentColorsBackup);
-  if (backup_valid && !current_valid)
-  {
-    RegDeleteKeyW(HKEY_LOCAL_MACHINE, (std::wstring{ kCurrentColorsPath } + kCurrentColorsName).c_str());
+  if (backup_valid && !current_valid) {
+    RegDeleteKeyW(HKEY_LOCAL_MACHINE, (std::wstring{kCurrentColorsPath} + kCurrentColorsName).c_str());
     rename_key(
-      (std::wstring{ kHKLMPrefix } + kCurrentColorsPath + kCurrentColorsBackup).c_str(),
+      (std::wstring{kHKLMPrefix} + kCurrentColorsPath + kCurrentColorsBackup).c_str(),
       kCurrentColorsName
     );
   }
   return S_OK;
 }
 
-static HRESULT InstallInternal(ULONG install_flags)
-{
+static HRESULT InstallInternal(ULONG install_flags) {
   const auto blob = GetBlob();
   if (!blob.first)
     return HRESULT_FROM_WIN32(ERROR_INSTALL_WRONG_PROCESSOR_ARCHITECTURE);
@@ -640,29 +574,25 @@ static HRESULT InstallInternal(ULONG install_flags)
   if (res != ERROR_SUCCESS)
     return HRESULT_FROM_WIN32(res);
 
-  if (install_flags & SECUREUXTHEME_INSTALL_HOOK_EXPLORER)
-  {
+  if (install_flags & SECUREUXTHEME_INSTALL_HOOK_EXPLORER) {
     res = InstallForExecutable(L"explorer.exe");
     if (res != ERROR_SUCCESS)
       return HRESULT_FROM_WIN32(res);
   }
 
-  if (install_flags & SECUREUXTHEME_INSTALL_HOOK_SETTINGS)
-  {
+  if (install_flags & SECUREUXTHEME_INSTALL_HOOK_SETTINGS) {
     res = InstallForExecutable(L"SystemSettings.exe");
     if (res != ERROR_SUCCESS)
       return HRESULT_FROM_WIN32(res);
   }
 
-  if (install_flags & SECUREUXTHEME_INSTALL_HOOK_LOGONUI)
-  {
+  if (install_flags & SECUREUXTHEME_INSTALL_HOOK_LOGONUI) {
     res = InstallForExecutable(L"LogonUI.exe");
     if (res != ERROR_SUCCESS)
       return HRESULT_FROM_WIN32(res);
   }
 
-  if (install_flags & SECUREUXTHEME_INSTALL_RENAME_DEFAULTCOLORS)
-  {
+  if (install_flags & SECUREUXTHEME_INSTALL_RENAME_DEFAULTCOLORS) {
     hr = RenameDefaultColors();
     if (FAILED(hr))
       return hr;
@@ -671,8 +601,7 @@ static HRESULT InstallInternal(ULONG install_flags)
   return S_OK;
 }
 
-HRESULT secureuxtheme_install(ULONG install_flags)
-{
+HRESULT secureuxtheme_install(ULONG install_flags) {
   unique_redirection_disabler _disabler{};
   const auto hr = InstallInternal(install_flags);
   if (FAILED(hr))
@@ -680,8 +609,7 @@ HRESULT secureuxtheme_install(ULONG install_flags)
   return hr;
 }
 
-HRESULT secureuxtheme_uninstall()
-{
+HRESULT secureuxtheme_uninstall() {
   unique_redirection_disabler _disabler{};
   auto res = UninstallForExecutable(L"winlogon.exe");
   if (res != ERROR_SUCCESS)
@@ -720,20 +648,17 @@ HRESULT secureuxtheme_uninstall()
   return S_OK;
 }
 
-HRESULT secureuxtheme_hook_add(LPCWSTR executable)
-{
+HRESULT secureuxtheme_hook_add(LPCWSTR executable) {
   unique_redirection_disabler _disabler{};
   return HRESULT_FROM_WIN32(InstallForExecutable(executable));
 }
 
-HRESULT secureuxtheme_hook_remove(LPCWSTR executable)
-{
+HRESULT secureuxtheme_hook_remove(LPCWSTR executable) {
   unique_redirection_disabler _disabler{};
   return HRESULT_FROM_WIN32(UninstallForExecutable(executable));
 }
 
-BOOLEAN secureuxtheme_hook_test(LPCWSTR executable)
-{
+BOOLEAN secureuxtheme_hook_test(LPCWSTR executable) {
   unique_redirection_disabler _disabler{};
   return IsInstalledForExecutable(executable) ? TRUE : FALSE;
 }
