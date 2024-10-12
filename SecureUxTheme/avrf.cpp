@@ -251,7 +251,7 @@ static void hook_thunks(PVOID base, PIMAGE_THUNK_DATA thunk, PIMAGE_THUNK_DATA o
 
         auto& hook = s_hooks[i];
 
-        const auto by_name = (PIMAGE_IMPORT_BY_NAME)(char*)base + original_thunk->u1.AddressOfData;
+        const auto by_name = (PIMAGE_IMPORT_BY_NAME)((char*)base + original_thunk->u1.AddressOfData);
         if ((hook.old_address && hook.old_address == (PVOID)thunk->u1.Function) || 0 == strcmp(by_name->Name, hook.function_name.Buffer)) {
           hook.old_address = (PVOID)thunk->u1.Function;
           DebugPrint("Hooking %s from %p to %p\n", hook.function_name.Buffer, hook.new_address, hook.old_address);
@@ -290,7 +290,7 @@ void apply_iat_hooks_on_dll(PVOID dll) {
   if (dosh->e_magic != IMAGE_DOS_SIGNATURE)
     return;
 
-  const auto nth = (PIMAGE_NT_HEADERS)base + dosh->e_lfanew;
+  const auto nth = (PIMAGE_NT_HEADERS)(base + dosh->e_lfanew);
   if (nth->Signature != IMAGE_NT_SIGNATURE)
     return;
 
