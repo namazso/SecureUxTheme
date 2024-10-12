@@ -116,7 +116,7 @@ void MainDialog::Install() {
   if (BST_CHECKED == Button_GetCheck(_hwnd_CHECK_LOGONUI))
     install_flags |= SECUREUXTHEME_INSTALL_HOOK_LOGONUI;
   if (BST_CHECKED == Button_GetCheck(_hwnd_CHECK_COLORS))
-    install_flags |= SECUREUXTHEME_INSTALL_RENAME_DEFAULTCOLORS;
+    install_flags |= SECUREUXTHEME_INSTALL_DELETE_DEFAULTCOLORS;
 
   const auto hr = secureuxtheme_install(install_flags);
 

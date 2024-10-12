@@ -15,9 +15,15 @@
 //  License along with this library; if not, write to the Free Software
 //  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
+#define WIN32_NO_STATUS
+
 #include <secureuxtheme.h>
 
 #include <winternl.h>
+
+#undef WIN32_NO_STATUS
+
+#include <ntstatus.h>
 
 #include <random>
 #include <unordered_map>
@@ -45,6 +51,11 @@ NTSYSCALLAPI NTSTATUS NTAPI NtOpenKey(
   _In_ POBJECT_ATTRIBUTES ObjectAttributes
 );
 
+NTSYSCALLAPI NTSTATUS NTAPI NtDeleteValueKey(
+  _In_ HANDLE KeyHandle,
+  _In_ PUNICODE_STRING ValueName
+);
+
 NTSYSCALLAPI NTSTATUS NTAPI NtOpenSymbolicLinkObject(
   _Out_ PHANDLE LinkHandle,
   _In_ ACCESS_MASK DesiredAccess,
@@ -63,10 +74,6 @@ EXTERN_C_END
 
 static constexpr wchar_t kPatcherDllName[] = L"SecureUxTheme.dll";
 static constexpr wchar_t kIFEO[] = L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\";
-static constexpr wchar_t kHKLMPrefix[] = L"\\Registry\\Machine\\";
-static constexpr wchar_t kCurrentColorsPath[] = L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\";
-static constexpr wchar_t kCurrentColorsName[] = L"DefaultColors";
-static constexpr wchar_t kCurrentColorsBackup[] = L"DefaultColors_backup";
 
 static std::unordered_map<ULONG, std::pair<LPCVOID, SIZE_T>> g_dlls;
 
@@ -335,45 +342,6 @@ static std::pair<LPCVOID, SIZE_T> GetBlob() {
   return entry == g_dlls.end() ? std::pair<LPCVOID, SIZE_T>{nullptr, 0} : entry->second;
 }
 
-DWORD open_key(PHKEY handle, const wchar_t* path, ULONG desired_access) {
-  UNICODE_STRING ustr{};
-  RtlInitUnicodeString(&ustr, path);
-  OBJECT_ATTRIBUTES attr{};
-  InitializeObjectAttributes(
-    &attr,
-    &ustr,
-    OBJ_CASE_INSENSITIVE | OBJ_OPENIF,
-    nullptr,
-    nullptr
-  );
-  auto status = NtOpenKey(
-    (PHANDLE)handle,
-    desired_access | KEY_WOW64_64KEY,
-    &attr
-  );
-
-  return RtlNtStatusToDosError(status);
-}
-
-DWORD rename_key(const wchar_t* old_path, const wchar_t* new_path) {
-  HKEY key{};
-  const auto ret = open_key(&key, old_path, KEY_ALL_ACCESS);
-
-  if (ret)
-    return ret;
-
-  UNICODE_STRING ustr{};
-  RtlInitUnicodeString(&ustr, new_path);
-  const auto status = NtRenameKey(
-    key,
-    &ustr
-  );
-
-  NtClose(key);
-
-  return RtlNtStatusToDosError(status);
-}
-
 static DWORD read_file(std::wstring_view path, std::vector<uint8_t>& content) {
   content.clear();
   DWORD error = NO_ERROR;
@@ -501,54 +469,55 @@ ULONG secureuxtheme_get_state_flags() {
   return flags;
 }
 
-static bool IsValidDefaultColors(const wchar_t* default_colors) {
-  DWORD ActiveTitle{};
-  DWORD ActiveTitle_size{sizeof(ActiveTitle)};
-  return ERROR_SUCCESS == RegGetValueW(HKEY_LOCAL_MACHINE, (std::wstring{kCurrentColorsPath} + default_colors + L"\\Standard").c_str(), L"ActiveTitle", RRF_RT_REG_DWORD | RRF_ZEROONFAILURE, nullptr, &ActiveTitle, &ActiveTitle_size);
-}
+static HRESULT DeleteDefaultColors() {
+  UNICODE_STRING name{};
+  OBJECT_ATTRIBUTES attr{};
 
-static HRESULT RenameDefaultColors() {
-  const auto current_valid = IsValidDefaultColors(kCurrentColorsName);
+  RtlInitUnicodeString(&name, L"\\Registry\\Machine\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\DefaultColors\\Standard");
+  InitializeObjectAttributes(&attr, &name, OBJ_CASE_INSENSITIVE, nullptr, nullptr);
 
-  if (current_valid) {
-    // we need to do something about current one.
+  HANDLE standard{};
+  NtOpenKey(&standard, KEY_SET_VALUE, &attr);
 
-    // delete backup if any exists for good measure
-    RegDeleteKeyW(HKEY_LOCAL_MACHINE, (std::wstring{kCurrentColorsPath} + kCurrentColorsBackup).c_str());
+  RtlInitUnicodeString(&name, L"\\Registry\\Machine\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\DefaultColors\\HighContrast");
+  InitializeObjectAttributes(&attr, &name, OBJ_CASE_INSENSITIVE, nullptr, nullptr);
 
-    const auto result = rename_key(
-      (std::wstring{kHKLMPrefix} + kCurrentColorsPath + kCurrentColorsName).c_str(),
-      kCurrentColorsBackup
-    );
-    if (result != ERROR_SUCCESS && result != ERROR_FILE_NOT_FOUND)
-      return HRESULT_FROM_WIN32(result);
+  HANDLE high_contrast{};
+  NtOpenKey(&high_contrast, KEY_SET_VALUE, &attr);
+
+  if (!standard && !high_contrast)
+    return S_OK;
+
+  static constexpr const wchar_t* colors[] = {
+    L"ActiveTitle",
+    L"ButtonFace",
+    L"ButtonText",
+    L"GrayText",
+    L"Hilight",
+    L"HilightText",
+    L"HotTrackingColor",
+    L"InactiveTitle",
+    L"InactiveTitleText",
+    L"MenuHilight",
+    L"TitleText",
+    L"Window",
+    L"WindowText"
+  };
+
+  for (auto color : colors) {
+    UNICODE_STRING value{};
+    RtlInitUnicodeString(&value, color);
+    if (standard)
+      NtDeleteValueKey(standard, &value);
+    if (high_contrast)
+      NtDeleteValueKey(high_contrast, &value);
   }
-  HKEY result;
-  result = nullptr;
-  RegCreateKeyW(HKEY_LOCAL_MACHINE, (std::wstring{kCurrentColorsPath} + kCurrentColorsName).c_str(), &result);
-  RegCloseKey(result);
-  result = nullptr;
-  RegCreateKeyW(HKEY_LOCAL_MACHINE, (std::wstring{kCurrentColorsPath} + kCurrentColorsName + L"\\HighContrast").c_str(), &result);
-  RegCloseKey(result);
-  result = nullptr;
-  RegCreateKeyW(HKEY_LOCAL_MACHINE, (std::wstring{kCurrentColorsPath} + kCurrentColorsName + L"\\Standard").c_str(), &result);
-  RegCloseKey(result);
-  result = nullptr;
-  return S_OK;
-}
 
-static HRESULT RestoreDefaultColors() {
-  // We ignore failures here because it's not a big edeal
+  if (standard)
+    NtClose(standard);
+  if (high_contrast)
+    NtClose(high_contrast);
 
-  const auto current_valid = IsValidDefaultColors(kCurrentColorsName);
-  const auto backup_valid = IsValidDefaultColors(kCurrentColorsBackup);
-  if (backup_valid && !current_valid) {
-    RegDeleteKeyW(HKEY_LOCAL_MACHINE, (std::wstring{kCurrentColorsPath} + kCurrentColorsName).c_str());
-    rename_key(
-      (std::wstring{kHKLMPrefix} + kCurrentColorsPath + kCurrentColorsBackup).c_str(),
-      kCurrentColorsName
-    );
-  }
   return S_OK;
 }
 
@@ -592,8 +561,8 @@ static HRESULT InstallInternal(ULONG install_flags) {
       return HRESULT_FROM_WIN32(res);
   }
 
-  if (install_flags & SECUREUXTHEME_INSTALL_RENAME_DEFAULTCOLORS) {
-    hr = RenameDefaultColors();
+  if (install_flags & SECUREUXTHEME_INSTALL_DELETE_DEFAULTCOLORS) {
+    hr = DeleteDefaultColors();
     if (FAILED(hr))
       return hr;
   }
@@ -640,10 +609,6 @@ HRESULT secureuxtheme_uninstall() {
   res = nuke_file(path);
   if (res != ERROR_SUCCESS)
     return HRESULT_FROM_WIN32(res);
-
-  const auto hr = RestoreDefaultColors();
-  if (FAILED(hr))
-    return hr;
 
   return S_OK;
 }

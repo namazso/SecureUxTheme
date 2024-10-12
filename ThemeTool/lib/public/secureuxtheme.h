@@ -74,9 +74,9 @@ ULONG secureuxtheme_get_state_flags(void);
  */
 #define SECUREUXTHEME_INSTALL_HOOK_LOGONUI          (ULONG)(1 << 2)
 /**
- * @brief Rename the DefaultColors key to DefaultColors_backup, and recreate it as empty.
+ * @brief Delete the DefaultColors values.
  */
-#define SECUREUXTHEME_INSTALL_RENAME_DEFAULTCOLORS  (ULONG)(1 << 3)
+#define SECUREUXTHEME_INSTALL_DELETE_DEFAULTCOLORS  (ULONG)(1 << 3)
 
 /**
  * @brief Install SecureUxTheme.
