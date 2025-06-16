@@ -72,7 +72,12 @@ target_sources(SecureUxTheme_header PUBLIC
 target_include_directories(SecureUxTheme_header INTERFACE "${SECUREUXTHEME_HEADER_DIR}")
 
 if ("${SIGN_SCRIPT}" STREQUAL "")
-    configure_file("$<TARGET_FILE:SecureUxTheme>" "${SECUREUXTHEME_SIGNED_PATH}" COPYONLY)
+    add_custom_command(
+            OUTPUT "${SECUREUXTHEME_SIGNED_PATH}"
+            COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:SecureUxTheme>" "${SECUREUXTHEME_SIGNED_PATH}"
+            DEPENDS "$<TARGET_FILE:SecureUxTheme>"
+            VERBATIM
+    )
 else ()
     add_custom_command(
             OUTPUT "${SECUREUXTHEME_SIGNED_PATH}"
