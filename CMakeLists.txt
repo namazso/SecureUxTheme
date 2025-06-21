@@ -51,11 +51,21 @@ FetchContent_Declare(phnt
 )
 FetchContent_MakeAvailable(phnt)
 
-add_library(SecureUxTheme SHARED SecureUxTheme/avrf.cpp)
-
-target_link_libraries(SecureUxTheme PRIVATE phnt::phnt ntdll.lib ntdllp.lib)
+add_library(SecureUxTheme SHARED
+        SecureUxTheme/avrf.cpp
+        SecureUxTheme/hooks.cpp
+)
+target_precompile_headers(SecureUxTheme PRIVATE
+        SecureUxTheme/pch.h
+)
+target_link_libraries(SecureUxTheme PRIVATE
+        phnt::phnt
+        ntdll.lib
+        ntdllp.lib
+)
 target_compile_options(SecureUxTheme PRIVATE
         /GS-
+        /Oy-
 )
 target_link_options(SecureUxTheme PRIVATE
         /NODEFAULTLIB
