@@ -15,6 +15,8 @@
 //  License along with this library; if not, write to the Free Software
 //  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
+#pragma once
+
 #define _NO_CRT_STDIO_INLINE 1
 #define NOMINMAX
 #define _CRT_SECURE_NO_WARNINGS
