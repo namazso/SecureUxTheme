@@ -62,6 +62,17 @@ target_link_options(SecureUxTheme PRIVATE
         /ENTRY:DllMain
 )
 
+add_library(ThemeUiProxy SHARED ThemeUiProxy/dll.cpp)
+
+target_link_libraries(ThemeUiProxy PRIVATE phnt::phnt ntdll.lib ntdllp.lib)
+target_compile_options(ThemeUiProxy PRIVATE
+        /GS-
+)
+target_link_options(ThemeUiProxy PRIVATE
+        /NODEFAULTLIB
+        /ENTRY:DllMain
+)
+
 set(SECUREUXTHEME_SIGNED_PATH "${CMAKE_CURRENT_BINARY_DIR}/SecureUxTheme.signed.dll")
 set(SECUREUXTHEME_HEADER_DIR "${CMAKE_CURRENT_BINARY_DIR}/SecureUxTheme_header")
 set(SECUREUXTHEME_HEADER_PATH "${SECUREUXTHEME_HEADER_DIR}/SecureUxTheme.dll.h")
