@@ -44,7 +44,12 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_subdirectory(phnt)
+include(FetchContent)
+FetchContent_Declare(phnt
+        GIT_REPOSITORY "https://github.com/winsiderss/phnt"
+        GIT_TAG fc1f96ee976635f51faa89896d1d805eb0586350
+)
+FetchContent_MakeAvailable(phnt)
 
 add_library(SecureUxTheme SHARED SecureUxTheme/avrf.cpp)
 
