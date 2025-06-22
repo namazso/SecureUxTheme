@@ -64,10 +64,10 @@
         <StandardDirectory Id="System64Folder">
             <Component Id="HookComponent64" Guid="95151161-eb96-416b-968f-e71b6f765ea2"
                 Bitness="always64">
-                <File Id="Hook64" Source="$(var.BuildDirectory)\SecureUxTheme.dll" />
+                <File Id="Hook64" Source="$(var.BuildDirectory)\SecureUxTheme4.dll" />
                 <RegistryKey Root="HKLM"
                     Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\winlogon.exe">
-                    <RegistryValue Type="string" Name="VerifierDlls" Value="SecureUxTheme.dll" />
+                    <RegistryValue Type="string" Name="VerifierDlls" Value="SecureUxTheme4.dll" />
                     <RegistryValue Type="integer" Name="GlobalFlag" Value="256" />
                 </RegistryKey>
             </Component>
@@ -81,10 +81,10 @@
         <StandardDirectory Id="SystemFolder">
             <Component Id="HookComponent32" Guid="aeb6d46e-0701-421c-a07a-9eed9bae3ec1"
                 Bitness="always32">
-                <File Id="Hook32" Source="$(var.BuildDirectory32)\SecureUxTheme.dll" />
+                <File Id="Hook32" Source="$(var.BuildDirectory32)\SecureUxTheme4.dll" />
                 <RegistryKey Root="HKLM"
                     Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\winlogon.exe">
-                    <RegistryValue Type="string" Name="VerifierDlls" Value="SecureUxTheme.dll" />
+                    <RegistryValue Type="string" Name="VerifierDlls" Value="SecureUxTheme4.dll" />
                     <RegistryValue Type="integer" Name="GlobalFlag" Value="256" />
                 </RegistryKey>
             </Component>

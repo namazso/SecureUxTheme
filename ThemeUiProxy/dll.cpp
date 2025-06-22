@@ -31,7 +31,7 @@
 BOOL WINAPI DllMain(PVOID, DWORD reason, PVOID) {
   if (reason == DLL_PROCESS_ATTACH) {
     UNICODE_STRING dll{};
-    RtlInitUnicodeString(&dll, L"SecureUxTheme.dll");
+    RtlInitUnicodeString(&dll, L"SecureUxTheme4.dll");
     PVOID handle{};
     // Note: LoadLibrary in DllMain has way too many issues by default. The only reason this is okay here is
     // that we know that this DLL will only use ntdll functions, which is already loaded in every process.

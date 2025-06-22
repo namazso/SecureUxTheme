@@ -88,6 +88,7 @@ target_link_options(SecureUxTheme PRIVATE
         /NODEFAULTLIB
         /ENTRY:DllMain
 )
+set_target_properties(SecureUxTheme PROPERTIES OUTPUT_NAME "SecureUxTheme4")
 
 add_library(ThemeUiProxy SHARED ThemeUiProxy/dll.cpp)
 
