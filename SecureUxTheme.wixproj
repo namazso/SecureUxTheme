@@ -1,0 +1,9 @@
+<Project Sdk="WixToolset.Sdk/6.0.0">
+    <PropertyGroup>
+        <InstallerPlatform>x64</InstallerPlatform>
+        <SuppressIces>ICE09</SuppressIces>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="WixToolset.Util.wixext" Version="6.0.0" />
+    </ItemGroup>
+</Project>
