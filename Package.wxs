@@ -34,12 +34,18 @@
         UpgradeCode="$(var.ProductUpgradeCode)">
 
         <Property Id="OLD_VER_EXISTS" Secure="yes">
-            <DirectorySearch Id="SystemFolderSearch" Path="[SystemFolder]">
-                <FileSearch Name="SecureUxTheme.dll" />
+            <?if $(var.Win64)?>
+            <DirectorySearch Id="CheckFileDir" Path="[System64Folder]" AssignToProperty="yes">
+                <FileSearch Id="CheckFile" Name="SecureUxTheme.dll" MinSize="1" />
             </DirectorySearch>
+            <?else?>
+            <DirectorySearch Id="CheckFileDir" Path="[SystemFolder]" AssignToProperty="yes">
+                <FileSearch Id="CheckFile" Name="SecureUxTheme.dll" MinSize="1" />
+            </DirectorySearch>
+            <?endif?>
         </Property>
 
-        <Launch Condition="NOT OLD_VER_EXISTS or Installed"
+        <Launch Condition="NOT OLD_VER_EXISTS"
             Message="An old version is already installed. Please uninstall it first." />
 
         <util:QueryNativeMachine />
