@@ -50,7 +50,8 @@
 
         <util:QueryNativeMachine />
 
-        <Launch Condition="WIX_NATIVE_MACHINE = $(var.ExpectedNativeMachine)"
+        <Launch
+            Condition="NOT WIX_NATIVE_MACHINE OR WIX_NATIVE_MACHINE = $(var.ExpectedNativeMachine)"
             Message="Unsupported architecture!" />
 
         <MediaTemplate EmbedCab="yes" />
