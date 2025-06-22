@@ -1,6 +1,5 @@
 <Project Sdk="WixToolset.Sdk/6.0.0">
     <PropertyGroup>
-        <InstallerPlatform>x64</InstallerPlatform>
         <SuppressIces>ICE09</SuppressIces>
     </PropertyGroup>
     <ItemGroup>
