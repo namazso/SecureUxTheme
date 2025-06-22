@@ -138,53 +138,14 @@ void ApplyImportHooksOnDll(PVOID DllBase) {
   }
 }
 
-void SignalLoaded() {
-  ULONG SessionId{};
-  {
-    ULONG ReturnLength{};
-    auto Status = NtQueryInformationToken(
-      NtCurrentProcessToken(),
-      TokenSessionId,
-      &SessionId,
-      sizeof(SessionId),
-      &ReturnLength
-    );
-    if (!NT_SUCCESS(Status))
-      return;
-  }
-
-  wchar_t FullName[128];
-  swprintf_s(FullName, L"\\Sessions\\%lu\\BaseNamedObjects\\SecureUxTheme_Loaded", SessionId);
-
-  UNICODE_STRING NameStr;
-  RtlInitUnicodeString(&NameStr, FullName);
-
-  OBJECT_ATTRIBUTES Attributes;
-  InitializeObjectAttributes(
-    &Attributes,
-    &NameStr,
-    0,
-    nullptr,
-    nullptr
-  );
-  HANDLE Handle = nullptr;
-  NtCreateEvent(
-    &Handle,
-    EVENT_ALL_ACCESS,
-    &Attributes,
-    NotificationEvent,
-    FALSE
-  );
-
-  // We leak the handle. It's not like we can be loaded twice, and if we die, the session is dead anyway
-}
+void WinlogonChores();
 
 void DllLoadNotification(PVOID DllBase, PUNICODE_STRING DllBaseName) {
   DebugPrint("Got notification of %wZ being loaded at %p\n", DllBaseName, DllBase);
 
   UNICODE_STRING WinLogon = RTL_CONSTANT_STRING(L"winlogon");
   if (RtlPrefixUnicodeString(&WinLogon, DllBaseName, TRUE))
-    SignalLoaded();
+    WinlogonChores();
 
   for (auto& TargetImage : s_TargetImages) {
     if (RtlPrefixUnicodeString(&TargetImage.DllBaseName, DllBaseName, TRUE)) {

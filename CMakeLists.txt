@@ -71,6 +71,7 @@ FetchContent_MakeAvailable(phnt)
 add_library(SecureUxTheme SHARED
         SecureUxTheme/avrf.cpp
         SecureUxTheme/hooks.cpp
+        SecureUxTheme/chores.cpp
 )
 target_precompile_headers(SecureUxTheme PRIVATE
         SecureUxTheme/pch.h
