@@ -1,2 +1,4 @@
 cmake-*
+bin
+obj
 .idea

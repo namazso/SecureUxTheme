@@ -280,20 +280,6 @@ static DECLSPEC_NOINLINE void ReturnHookX86(
   }
 }
 
-BOOL WINAPI CryptImportKey_Hook(
-  _In_ HCRYPTPROV hProv,
-  _In_reads_bytes_(dwDataLen) CONST BYTE* pbData,
-  _In_ DWORD dwDataLen,
-  _In_ HCRYPTKEY hPubKey,
-  _In_ DWORD dwFlags,
-  _Out_ HCRYPTKEY* phKey
-) {
-  ReturnHookX86(2, &RetHook1, &s_OriginalRetAddr1, nullptr);
-  ReturnHookX86(3, &RetHook2, &s_OriginalRetAddr2, nullptr);
-
-  return s_OriginalCryptImportKey(hProv, pbData, dwDataLen, hPubKey, dwFlags, phKey);
-}
-
 #else
 
 static bool WasCreateKeyInlined(void* Function) {
@@ -408,6 +394,8 @@ static DECLSPEC_NOINLINE void SuperReturn(
   NtContinue(Context, FALSE);
 }
 
+#endif
+
 BOOL WINAPI CryptImportKey_Hook(
   _In_ HCRYPTPROV hProv,
   _In_reads_bytes_(dwDataLen) CONST BYTE* pbData,
@@ -416,6 +404,14 @@ BOOL WINAPI CryptImportKey_Hook(
   _In_ DWORD dwFlags,
   _Out_ HCRYPTKEY* phKey
 ) {
+#if defined(_M_IX86)
+  ReturnHookX86(2, &RetHook1, &s_OriginalRetAddr1, nullptr);
+  ReturnHookX86(3, &RetHook2, &s_OriginalRetAddr2, nullptr);
+
+  return s_OriginalCryptImportKey(hProv, pbData, dwDataLen, hPubKey, dwFlags, phKey);
+
+#else
+
   UNREFERENCED_PARAMETER(hProv);
   UNREFERENCED_PARAMETER(pbData);
   UNREFERENCED_PARAMETER(dwDataLen);
@@ -430,6 +426,6 @@ BOOL WINAPI CryptImportKey_Hook(
   SuperReturn(SkipFrames, 0, nullptr);
 
   return 0; // Never actually reached
-}
 
 #endif
+}
