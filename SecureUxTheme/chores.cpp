@@ -366,6 +366,11 @@ static NTSTATUS DeleteDefaultColors(bool HighContrast) {
 }
 
 void WinlogonChores() {
+  static bool s_AlreadyDone = false;
+  if (s_AlreadyDone)
+    return;
+  s_AlreadyDone = true;
+
   SignalLoaded();
   SetThemeUiProxyKeys();
   auto Status = DeleteDefaultColors(false);
