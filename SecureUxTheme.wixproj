@@ -1,5 +1,6 @@
 <Project Sdk="WixToolset.Sdk/6.0.0">
     <PropertyGroup>
+        <SignOutput>true</SignOutput>
         <SuppressIces>ICE09</SuppressIces>
     </PropertyGroup>
     <PropertyGroup Condition=" '$(RuntimeIdentifier)' == 'win-x86' ">
@@ -14,4 +15,8 @@
     <ItemGroup>
         <PackageReference Include="WixToolset.Util.wixext" Version="6.0.0" />
     </ItemGroup>
+    <Target Name="SignMsi">
+        <Message Importance="high" Text="SignMsi: @(SignMsi)" />
+        <Exec Command='$(AUTHENTICODE_SIGN) "%(SignMsi.FullPath)" ' />
+    </Target>
 </Project>
