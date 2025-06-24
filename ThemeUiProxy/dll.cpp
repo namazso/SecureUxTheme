@@ -39,3 +39,6 @@ BOOL WINAPI DllMain(PVOID, DWORD reason, PVOID) {
   }
   return TRUE;
 }
+
+STDAPI  DllCanUnloadNow(void) { return S_OK; }
+STDAPI  DllGetClassObject(_In_ REFCLSID, _In_ REFIID, _Outptr_ LPVOID FAR*) { return S_OK; }

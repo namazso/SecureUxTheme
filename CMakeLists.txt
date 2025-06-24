@@ -86,7 +86,6 @@ target_compile_options(SecureUxTheme PRIVATE
         /Oy-
 )
 target_link_options(SecureUxTheme PRIVATE
-        /NODEFAULTLIB
         /ENTRY:DllMain
 )
 set_target_properties(SecureUxTheme PROPERTIES OUTPUT_NAME "SecureUxTheme4")
@@ -98,6 +97,10 @@ target_compile_options(ThemeUiProxy PRIVATE
         /GS-
 )
 target_link_options(ThemeUiProxy PRIVATE
-        /NODEFAULTLIB
         /ENTRY:DllMain
 )
+
+if(DEFINED BUILD_AS_ARM64X)
+    set(ARM64X_TARGETS SecureUxTheme ThemeUiProxy)
+    include("arm64x.cmake")
+endif()
