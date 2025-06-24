@@ -34,7 +34,7 @@
   <?define ProductUpgradeCode = "e0e6c0ea-103b-4e8a-b1a9-1703853a49f4"?>
   <?define Win64 = "yes"?>
   <?define ExpectedNativeMachine = "43620"?>
-  <?define BuildDirectory = "cmake-build-release-arm64"?>
+  <?define BuildDirectory = "cmake-build-release-arm64ec"?>
 <?else?>
   <?define ProductId = "1721d3da-a73f-4a52-8796-5620f85fad65"?>
   <?define ProductUpgradeCode = "3ff010a5-2e94-4621-a260-3a7abcddb37c"?>
