@@ -7,6 +7,7 @@ call %AUTHENTICODE_SIGN% cmake-build-release-x64\ThemeUiProxy.dll
 call %AUTHENTICODE_SIGN% cmake-build-release-arm64ec\SecureUxTheme4.dll
 call %AUTHENTICODE_SIGN% cmake-build-release-arm64ec\ThemeUiProxy.dll
 
+dotnet clean -c Release
 dotnet build -c Release -a x86 -o bin\Release_x86
 dotnet clean -c Release
 dotnet build -c Release -a x64 -o bin\Release_x64
