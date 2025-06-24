@@ -68,20 +68,20 @@ static HookTargetImage s_TargetImages[] =
 static void HookThunks(PVOID DllBase, PIMAGE_THUNK_DATA Thunk, PIMAGE_THUNK_DATA OriginalThunk) {
   while (OriginalThunk->u1.AddressOfData) {
     if (!(OriginalThunk->u1.Ordinal & IMAGE_ORDINAL_FLAG)) {
-      for (auto& Hook : s_Hooks) {
+      for (auto& [FunctionName, OldAddress, NewAddress] : s_Hooks) {
         const auto ByName = (PIMAGE_IMPORT_BY_NAME)((char*)DllBase + OriginalThunk->u1.AddressOfData);
-        ANSI_STRING FunctionName{};
-        RtlInitAnsiString(&FunctionName, ByName->Name);
-        bool ShouldHook = *Hook.OldAddress
-                            ? *Hook.OldAddress == (PVOID)Thunk->u1.Function
-                            : RtlEqualString(&FunctionName, &Hook.FunctionName, FALSE);
+        ANSI_STRING Name{};
+        RtlInitAnsiString(&Name, ByName->Name);
+        const bool ShouldHook = *OldAddress
+                                  ? *OldAddress == (PVOID)Thunk->u1.Function
+                                  : RtlEqualString(&Name, &FunctionName, FALSE);
         if (ShouldHook) {
-          *Hook.OldAddress = (PVOID)Thunk->u1.Function;
-          DebugPrint("Hooking %hZ from %p to %p\n", &Hook.FunctionName, Hook.NewAddress, *Hook.OldAddress);
+          *OldAddress = (PVOID)Thunk->u1.Function;
+          DebugPrint("Hooking %hZ from %p to %p\n", &FunctionName, NewAddress, *OldAddress);
           PVOID Target = &Thunk->u1.Function;
           SIZE_T TargetSize = sizeof(PVOID);
           ULONG OldProtect;
-          auto Status = NtProtectVirtualMemory(
+          const auto Status = NtProtectVirtualMemory(
             NtCurrentProcess(),
             &Target,
             &TargetSize,
@@ -89,8 +89,8 @@ static void HookThunks(PVOID DllBase, PIMAGE_THUNK_DATA Thunk, PIMAGE_THUNK_DATA
             &OldProtect
           );
           if (NT_SUCCESS(Status)) {
-            Thunk->u1.Function = (ULONG_PTR)Hook.NewAddress;
-            NtProtectVirtualMemory(
+            Thunk->u1.Function = (ULONG_PTR)NewAddress;
+            (void)NtProtectVirtualMemory(
               NtCurrentProcess(),
               &Target,
               &TargetSize,
@@ -322,13 +322,8 @@ static DECLSPEC_NOINLINE void SuperReturn(
 
   for (ULONG i = 0; i < FramesToSkip; i++) {
     ULONG_PTR ImageBase = 0;
-    PRUNTIME_FUNCTION FunctionEntry = RtlLookupFunctionEntry(ControlPc, &ImageBase, NULL);
 
-    if (!FunctionEntry) {
-      // leaf
-      CTX_IP(Context) = *(ULONG64*)CTX_SP(Context);
-      CTX_SP(Context) += sizeof(ULONG64);
-    } else {
+    if (const auto FunctionEntry = RtlLookupFunctionEntry(ControlPc, &ImageBase, nullptr)) {
       PVOID HandlerData;
       ULONG64 EstablisherFrame;
       RtlVirtualUnwind(
@@ -339,8 +334,12 @@ static DECLSPEC_NOINLINE void SuperReturn(
         Context,
         &HandlerData,
         &EstablisherFrame,
-        NULL
+        nullptr
       );
+    } else {
+      // leaf
+      CTX_IP(Context) = *(ULONG64*)CTX_SP(Context);
+      CTX_SP(Context) += sizeof(ULONG64);
     }
 
     ControlPc = CTX_IP(Context);
@@ -352,7 +351,7 @@ static DECLSPEC_NOINLINE void SuperReturn(
 #undef CTX_SP
 #undef CTX_RV
 
-  NtContinue(Context, FALSE);
+  (void)NtContinue(Context, FALSE);
 }
 
 #endif

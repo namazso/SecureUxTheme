@@ -35,7 +35,9 @@ BOOL WINAPI DllMain(PVOID, DWORD reason, PVOID) {
     PVOID handle{};
     // Note: LoadLibrary in DllMain has way too many issues by default. The only reason this is okay here is
     // that we know that this DLL will only use ntdll functions, which is already loaded in every process.
-    LdrLoadDll((PWCH)(1 | LOAD_LIBRARY_SEARCH_SYSTEM32), nullptr, &dll, &handle);
+    // We do LoadLibrary here instead of just importing to let it fail if the DLL is not present, such as if
+    // SecureUxTheme was uninstalled because undoing the CLSID proxying is not trivial.
+    (void)LdrLoadDll((PWCH)(1 | LOAD_LIBRARY_SEARCH_SYSTEM32), nullptr, &dll, &handle);
   }
   return TRUE;
 }

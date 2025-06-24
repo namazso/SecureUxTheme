@@ -19,7 +19,7 @@ static void SignalLoaded() {
   ULONG SessionId{};
   {
     ULONG ReturnLength{};
-    auto Status = NtQueryInformationToken(
+    const auto Status = NtQueryInformationToken(
       NtCurrentProcessToken(),
       TokenSessionId,
       &SessionId,
@@ -45,7 +45,7 @@ static void SignalLoaded() {
     nullptr
   );
   HANDLE Handle = nullptr;
-  NtCreateEvent(
+  (void)NtCreateEvent(
     &Handle,
     EVENT_ALL_ACCESS,
     &Attributes,
@@ -75,7 +75,7 @@ NTSTATUS AllowWriteForSystem(HANDLE Key) {
   BOOLEAN DaclDefaulted;
   PACL OldDacl = nullptr;
   ULONG AclSize = 0;
-  SID_IDENTIFIER_AUTHORITY NtAuthority;
+  SID_IDENTIFIER_AUTHORITY NtAuthority = {};
 
   // Get the required security descriptor size
   Status = NtQuerySecurityObject(
@@ -91,8 +91,10 @@ NTSTATUS AllowWriteForSystem(HANDLE Key) {
 
   // Allocate security descriptor
   SecurityDescriptor = (PSECURITY_DESCRIPTOR)(Malloc(SecurityDescriptorSize));
-  if (!SecurityDescriptor)
-    return STATUS_NO_MEMORY;
+  if (!SecurityDescriptor) {
+    Status = STATUS_NO_MEMORY;
+    goto Cleanup;
+  }
 
   // Get the current security descriptor
   Status = NtQuerySecurityObject(
@@ -104,7 +106,7 @@ NTSTATUS AllowWriteForSystem(HANDLE Key) {
   );
 
   if (!NT_SUCCESS(Status))
-    goto cleanup_security_descriptor;
+    goto Cleanup;
 
   // Get the SYSTEM SID
   NtAuthority = SECURITY_NT_AUTHORITY;
@@ -123,7 +125,7 @@ NTSTATUS AllowWriteForSystem(HANDLE Key) {
   );
 
   if (!NT_SUCCESS(Status))
-    goto cleanup_security_descriptor;
+    goto Cleanup;
 
   // Extract current DACL
   Status = RtlGetDaclSecurityDescriptor(
@@ -134,7 +136,7 @@ NTSTATUS AllowWriteForSystem(HANDLE Key) {
   );
 
   if (!NT_SUCCESS(Status))
-    goto cleanup_sid;
+    goto Cleanup;
 
   // Calculate new ACL size
   AclSize = sizeof(ACL);
@@ -148,18 +150,18 @@ NTSTATUS AllowWriteForSystem(HANDLE Key) {
   NewDacl = (PACL)(Malloc(AclSize));
   if (!NewDacl) {
     Status = STATUS_NO_MEMORY;
-    goto cleanup_sid;
+    goto Cleanup;
   }
 
   // Initialize new ACL
   Status = RtlCreateAcl(NewDacl, AclSize, ACL_REVISION);
   if (!NT_SUCCESS(Status))
-    goto cleanup_dacl;
+    goto Cleanup;
 
   // Add SYSTEM ACE with write access at the beginning
   Status = RtlAddAccessAllowedAce(NewDacl, ACL_REVISION, KEY_SET_VALUE, SystemSid);
   if (!NT_SUCCESS(Status))
-    goto cleanup_dacl;
+    goto Cleanup;
 
   // Copy existing ACEs from old DACL
   if (OldDacl && OldDacl->AceCount > 0) {
@@ -171,7 +173,7 @@ NTSTATUS AllowWriteForSystem(HANDLE Key) {
 
       Status = RtlAddAce(NewDacl, ACL_REVISION, MAXDWORD, Ace, ((PACE_HEADER)Ace)->AceSize);
       if (!NT_SUCCESS(Status))
-        goto cleanup_dacl;
+        goto Cleanup;
     }
   }
 
@@ -179,18 +181,18 @@ NTSTATUS AllowWriteForSystem(HANDLE Key) {
   NewSD = (PSECURITY_DESCRIPTOR)(Malloc(SECURITY_DESCRIPTOR_MIN_LENGTH));
   if (!NewSD) {
     Status = STATUS_NO_MEMORY;
-    goto cleanup_dacl;
+    goto Cleanup;
   }
 
   // Initialize new security descriptor
   Status = RtlCreateSecurityDescriptor(NewSD, SECURITY_DESCRIPTOR_REVISION);
   if (!NT_SUCCESS(Status))
-    goto cleanup_sd;
+    goto Cleanup;
 
   // Set new DACL in security descriptor
   Status = RtlSetDaclSecurityDescriptor(NewSD, TRUE, NewDacl, FALSE);
   if (!NT_SUCCESS(Status))
-    goto cleanup_sd;
+    goto Cleanup;
 
   // Apply new security descriptor to the registry key
   Status = NtSetSecurityObject(
@@ -199,14 +201,15 @@ NTSTATUS AllowWriteForSystem(HANDLE Key) {
     NewSD
   );
 
-cleanup_sd:
-  Free(NewSD);
-cleanup_dacl:
-  Free(NewDacl);
-cleanup_sid:
-  RtlFreeSid(SystemSid);
-cleanup_security_descriptor:
-  Free(SecurityDescriptor);
+Cleanup:
+  if (NewSD)
+    Free(NewSD);
+  if (NewDacl)
+    Free(NewDacl);
+  if (SystemSid)
+    RtlFreeSid(SystemSid);
+  if (SecurityDescriptor)
+    Free(SecurityDescriptor);
 
   return Status;
 }
@@ -220,8 +223,8 @@ static NTSTATUS RegSetKeyValueExpandString(PCWSTR KeyName, PCWSTR ValueName, PCW
     &KeyAttributes,
     &KeyNameUnicode,
     OBJ_CASE_INSENSITIVE,
-    NULL,
-    NULL
+    nullptr,
+    nullptr
   );
 
   // First attempt to open the key
@@ -244,7 +247,7 @@ static NTSTATUS RegSetKeyValueExpandString(PCWSTR KeyName, PCWSTR ValueName, PCW
     if (NT_SUCCESS(Status)) {
       // Got a handle, now adjust permissions
       Status = AllowWriteForSystem(KeyHandle);
-      NtClose(KeyHandle);
+      (void)NtClose(KeyHandle);
       KeyHandle = nullptr;
 
       if (NT_SUCCESS(Status)) {
@@ -276,7 +279,7 @@ static NTSTATUS RegSetKeyValueExpandString(PCWSTR KeyName, PCWSTR ValueName, PCW
   }
 
   // Calculate string length in bytes (including null terminator)
-  ULONG ValueLength = (ULONG)((wcslen(Value) + 1) * sizeof(WCHAR));
+  const auto ValueLength = (ULONG)((wcslen(Value) + 1) * sizeof(WCHAR));
 
   Status = NtSetValueKey(
     KeyHandle,
@@ -288,7 +291,7 @@ static NTSTATUS RegSetKeyValueExpandString(PCWSTR KeyName, PCWSTR ValueName, PCW
   );
 
   // Close the key handle
-  NtClose(KeyHandle);
+  (void)NtClose(KeyHandle);
 
   return Status;
 }
@@ -296,23 +299,23 @@ static NTSTATUS RegSetKeyValueExpandString(PCWSTR KeyName, PCWSTR ValueName, PCW
 static void SetThemeUiProxyKeys() {
   // We can just leave these as ThemeUiProxy.dll is never uninstalled
 
-  RegSetKeyValueExpandString(
+  (void)RegSetKeyValueExpandString(
     L"\\Registry\\Machine\\SOFTWARE\\Classes\\CLSID\\{9324DA94-50EC-4A14-A770-E90CA03E7C8F}\\InProcServer32",
     L"",
     L"%SystemRoot%\\system32\\ThemeUiProxy.dll"
     );
-  RegSetKeyValueExpandString(
+  (void)RegSetKeyValueExpandString(
     L"\\Registry\\Machine\\SOFTWARE\\Classes\\CLSID\\{c04b329e-5823-4415-9c93-ba44688947b0}\\InProcServer32",
     L"",
     L"%SystemRoot%\\system32\\ThemeUiProxy.dll"
     );
   if constexpr (sizeof(void*) == 8) {
-    RegSetKeyValueExpandString(
+    (void)RegSetKeyValueExpandString(
       L"\\Registry\\Machine\\SOFTWARE\\Classes\\Wow6432Node\\CLSID\\{9324DA94-50EC-4A14-A770-E90CA03E7C8F}\\InProcServer32",
       L"",
       L"%SystemRoot%\\system32\\ThemeUiProxy.dll"
     );
-    RegSetKeyValueExpandString(
+    (void)RegSetKeyValueExpandString(
       L"\\Registry\\Machine\\SOFTWARE\\Classes\\Wow6432Node\\CLSID\\{c04b329e-5823-4415-9c93-ba44688947b0}\\InProcServer32",
       L"",
       L"%SystemRoot%\\system32\\ThemeUiProxy.dll"
@@ -331,7 +334,7 @@ static NTSTATUS DeleteDefaultColors(bool HighContrast) {
   InitializeObjectAttributes(&Attributes, &Name, OBJ_CASE_INSENSITIVE, nullptr, nullptr);
 
   HANDLE Handle{};
-  auto Status = NtOpenKey(&Handle, KEY_SET_VALUE, &Attributes);
+  const auto Status = NtOpenKey(&Handle, KEY_SET_VALUE, &Attributes);
   if (Status == STATUS_OBJECT_NAME_NOT_FOUND || Status == STATUS_OBJECT_PATH_NOT_FOUND)
     return STATUS_SUCCESS;
 
@@ -354,13 +357,13 @@ static NTSTATUS DeleteDefaultColors(bool HighContrast) {
     L"WindowText"
   };
 
-  for (auto Color : Colors) {
+  for (const auto Color : Colors) {
     UNICODE_STRING value{};
     RtlInitUnicodeString(&value, Color);
-    NtDeleteValueKey(Handle, &value);
+    (void)NtDeleteValueKey(Handle, &value);
   }
 
-  NtClose(Handle);
+  (void)NtClose(Handle);
 
   return STATUS_SUCCESS;
 }

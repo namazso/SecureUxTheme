@@ -71,7 +71,7 @@ BOOL WINAPI DllMain(
   case DLL_PROCESS_ATTACH: {
     PVOID Cookie{};
     DebugPrint("Attached to process\n");
-    LdrDisableThreadCalloutsForDll(DllHandle);
+    (void)LdrDisableThreadCalloutsForDll(DllHandle);
     decltype(&LdrRegisterDllNotification) FnLdrRegisterDllNotification = nullptr;
 
     // For some reason, this isn't in implibs
@@ -79,11 +79,11 @@ BOOL WINAPI DllMain(
       PVOID NtdllBase = nullptr;
       RtlPcToFileHeader(&RtlPcToFileHeader, &NtdllBase);
       ANSI_STRING Str = RTL_CONSTANT_STRING("LdrRegisterDllNotification");
-      LdrGetProcedureAddress(NtdllBase, &Str, 0, (PVOID*)&FnLdrRegisterDllNotification);
+      (void)LdrGetProcedureAddress(NtdllBase, &Str, 0, (PVOID*)&FnLdrRegisterDllNotification);
     }
 
-    FnLdrRegisterDllNotification(0, DllNotification, nullptr, &Cookie);
-    LdrEnumerateLoadedModules(FALSE, &EnumProc, nullptr);
+    (void)FnLdrRegisterDllNotification(0, DllNotification, nullptr, &Cookie);
+    (void)LdrEnumerateLoadedModules(FALSE, &EnumProc, nullptr);
     DebugPrint("Enumerated already loaded modules\n");
     break;
   }
