@@ -63,6 +63,9 @@
             </DirectorySearch>
             <?endif?>
         </Property>
+        <?if $(var.Win64) = "yes"?>
+        <Property Id="PACKAGE_IS_WIN64" Value="1" Secure="yes" />
+        <?endif?>
 
         <Launch Condition="NOT OLD_VER_EXISTS"
             Message="An old version is already installed. Please uninstall it first." />
@@ -70,16 +73,16 @@
         <util:QueryNativeMachine />
 
         <Launch
-            Condition="NOT WIX_NATIVE_MACHINE OR WIX_NATIVE_MACHINE = $(var.ExpectedNativeMachine)"
-            Message="Unsupported architecture!" />
+            Condition="(NOT WIX_NATIVE_MACHINE OR WIX_NATIVE_MACHINE = $(var.ExpectedNativeMachine)) AND (VersionNT64 IMP PACKAGE_IS_WIN64)"
+            Message="This architecture is not supported by this install package!" />
 
         <MediaTemplate EmbedCab="yes" />
 
         <Property Id="ARPNOREPAIR" Value="1" />
         <Property Id="ARPNOMODIFY" Value="1" />
-        
+
         <InstallExecuteSequence>
-          <ScheduleReboot After="InstallFinalize"/>
+            <ScheduleReboot After="InstallFinalize" />
         </InstallExecuteSequence>
 
         <Feature Id="Main">
