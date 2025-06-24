@@ -19,13 +19,6 @@ cmake_minimum_required(VERSION 3.16)
 
 project(SecureUxTheme)
 
-set(CI_VERSION "(unknown)" CACHE STRING "Version string")
-set(CI_VERSION_MAJOR "0" CACHE STRING "Version major number")
-set(CI_VERSION_MINOR "0" CACHE STRING "Version minor number")
-set(CI_VERSION_PATCH "0" CACHE STRING "Version patch number")
-
-set(SIGN_SCRIPT "" CACHE STRING "Signing script, called like <script> <input> <output>")
-
 add_compile_options(
         "$<$<NOT:$<CONFIG:Debug>>:/Zi>"
         /utf-8
@@ -51,10 +44,6 @@ add_link_options(
 add_compile_definitions(
         UNICODE
         _UNICODE
-        "CI_VERSION=\"${CI_VERSION}\""
-        "CI_VERSION_MAJOR=${CI_VERSION_MAJOR}"
-        "CI_VERSION_MINOR=${CI_VERSION_MINOR}"
-        "CI_VERSION_PATCH=${CI_VERSION_PATCH}"
 )
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
