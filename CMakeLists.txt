@@ -1,13 +1,23 @@
+# SecureUxTheme - A secure boot compatible in-memory UxTheme patcher
+# Copyright (C) 2025  namazso <admin@namazso.eu>
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
 cmake_minimum_required(VERSION 3.16)
 
 project(SecureUxTheme)
-
-set(CI_VERSION "(unknown)" CACHE STRING "Version string")
-set(CI_VERSION_MAJOR "0" CACHE STRING "Version major number")
-set(CI_VERSION_MINOR "0" CACHE STRING "Version minor number")
-set(CI_VERSION_PATCH "0" CACHE STRING "Version patch number")
-
-set(SIGN_SCRIPT "" CACHE STRING "Signing script, called like <script> <input> <output>")
 
 add_compile_options(
         "$<$<NOT:$<CONFIG:Debug>>:/Zi>"
@@ -34,94 +44,52 @@ add_link_options(
 add_compile_definitions(
         UNICODE
         _UNICODE
-        "CI_VERSION=\"${CI_VERSION}\""
-        "CI_VERSION_MAJOR=${CI_VERSION_MAJOR}"
-        "CI_VERSION_MINOR=${CI_VERSION_MINOR}"
-        "CI_VERSION_PATCH=${CI_VERSION_PATCH}"
 )
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_subdirectory(phnt)
+include(FetchContent)
+FetchContent_Declare(phnt
+        GIT_REPOSITORY "https://github.com/winsiderss/phnt"
+        GIT_TAG fc1f96ee976635f51faa89896d1d805eb0586350
+)
+FetchContent_MakeAvailable(phnt)
 
-add_library(SecureUxTheme SHARED SecureUxTheme/avrf.cpp)
-
-target_link_libraries(SecureUxTheme PRIVATE phnt::phnt ntdll.lib ntdllp.lib)
+add_library(SecureUxTheme SHARED
+        SecureUxTheme/avrf.cpp
+        SecureUxTheme/hooks.cpp
+        SecureUxTheme/chores.cpp
+)
+target_precompile_headers(SecureUxTheme PRIVATE
+        SecureUxTheme/pch.h
+)
+target_link_libraries(SecureUxTheme PRIVATE
+        phnt::phnt
+        ntdll.lib
+        ntdllp.lib
+)
 target_compile_options(SecureUxTheme PRIVATE
         /GS-
+        /Oy-
 )
 target_link_options(SecureUxTheme PRIVATE
-        /NODEFAULTLIB
+        /ENTRY:DllMain
+)
+set_target_properties(SecureUxTheme PROPERTIES OUTPUT_NAME "SecureUxTheme4")
+
+add_library(ThemeUiProxy SHARED ThemeUiProxy/dll.cpp)
+
+target_link_libraries(ThemeUiProxy PRIVATE phnt::phnt ntdll.lib ntdllp.lib)
+target_compile_options(ThemeUiProxy PRIVATE
+        /GS-
+)
+target_link_options(ThemeUiProxy PRIVATE
         /ENTRY:DllMain
 )
 
-set(SECUREUXTHEME_SIGNED_PATH "${CMAKE_CURRENT_BINARY_DIR}/SecureUxTheme.signed.dll")
-set(SECUREUXTHEME_HEADER_DIR "${CMAKE_CURRENT_BINARY_DIR}/SecureUxTheme_header")
-set(SECUREUXTHEME_HEADER_PATH "${SECUREUXTHEME_HEADER_DIR}/SecureUxTheme.dll.h")
-
-file(MAKE_DIRECTORY "${SECUREUXTHEME_HEADER_DIR}")
-
-add_library(SecureUxTheme_header INTERFACE)
-target_sources(SecureUxTheme_header PUBLIC
-        FILE_SET HEADERS
-        BASE_DIRS "${CMAKE_CURRENT_BINARY_DIR}/SecureUxTheme_header"
-        FILES "${SECUREUXTHEME_HEADER_PATH}"
-)
-target_include_directories(SecureUxTheme_header INTERFACE "${SECUREUXTHEME_HEADER_DIR}")
-
-if ("${SIGN_SCRIPT}" STREQUAL "")
-    add_custom_command(
-            OUTPUT "${SECUREUXTHEME_SIGNED_PATH}"
-            COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:SecureUxTheme>" "${SECUREUXTHEME_SIGNED_PATH}"
-            DEPENDS "$<TARGET_FILE:SecureUxTheme>"
-            VERBATIM
-    )
-else ()
-    add_custom_command(
-            OUTPUT "${SECUREUXTHEME_SIGNED_PATH}"
-            COMMAND "${SIGN_SCRIPT}"
-            "$<TARGET_FILE:SecureUxTheme>"
-            "${SECUREUXTHEME_SIGNED_PATH}"
-            DEPENDS "$<TARGET_FILE:SecureUxTheme>"
-            VERBATIM
-    )
-endif ()
-
-add_custom_command(
-        OUTPUT "${SECUREUXTHEME_HEADER_PATH}"
-        COMMAND powershell -NoProfile -ExecutionPolicy Bypass -File "${CMAKE_CURRENT_SOURCE_DIR}/bin2h.ps1"
-        "${SECUREUXTHEME_SIGNED_PATH}"
-        "${SECUREUXTHEME_HEADER_PATH}"
-        DEPENDS "${SECUREUXTHEME_SIGNED_PATH}"
-        VERBATIM
-)
-
-add_library(ThemeLib STATIC
-        ThemeLib/install.cpp
-        ThemeLib/signature.cpp
-        ThemeLib/theme.cpp
-)
-target_link_libraries(ThemeLib PRIVATE SecureUxTheme_header phnt::phnt)
-target_include_directories(ThemeLib PUBLIC ThemeLib/public)
-
-add_library(ThemeDll SHARED
-        ThemeDll/dllmain.cpp
-        ThemeDll/exports.def
-)
-
-target_link_libraries(ThemeDll PRIVATE ThemeLib)
-
-add_executable(ThemeTool WIN32
-        ThemeTool/main.cpp
-        ThemeTool/MainDialog.cpp
-        ThemeTool/utl.cpp
-        ThemeTool/ThemeTool.rc
-)
-target_precompile_headers(ThemeTool PRIVATE ThemeTool/pch.h)
-
-target_link_libraries(ThemeTool PRIVATE
-        ThemeLib
-        phnt::phnt
-)
+if(DEFINED BUILD_AS_ARM64X)
+    set(ARM64X_TARGETS SecureUxTheme ThemeUiProxy)
+    include("arm64x.cmake")
+endif()

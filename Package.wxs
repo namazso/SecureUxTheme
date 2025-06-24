@@ -1,0 +1,131 @@
+<!--
+    SecureUxTheme - A secure boot compatible in-memory UxTheme patcher
+    Copyright (C) 2025  namazso <admin@namazso.eu>
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+-->
+
+<?define ProductName = "SecureUxTheme"?>
+<?define ProductVersion = "4.0.0"?>
+<?define ProductFullVersion = "4.0.0.0"?>
+<?define ProductAuthor = "namazso"?>
+<?define BuildDirectory32 = "cmake-build-release-x86"?>
+
+<?if $(sys.BUILDARCH) = x64?>
+  <?define ProductId = "4c85871a-1b42-4b1a-9838-759136e1b25d"?>
+  <?define ProductUpgradeCode = "965b5b74-4040-4e89-947f-af8d99a76706"?>
+  <?define Win64 = "yes"?>
+  <?define ExpectedNativeMachine = "34404"?>
+  <?define BuildDirectory = "cmake-build-release-x64"?>
+<?elseif $(sys.BUILDARCH) = arm64?>
+  <?define ProductId = "53e67b85-5c79-4d64-a5cb-cbc61b0bc61a"?>
+  <?define ProductUpgradeCode = "e0e6c0ea-103b-4e8a-b1a9-1703853a49f4"?>
+  <?define Win64 = "yes"?>
+  <?define ExpectedNativeMachine = "43620"?>
+  <?define BuildDirectory = "cmake-build-release-arm64ec"?>
+<?else?>
+  <?define ProductId = "1721d3da-a73f-4a52-8796-5620f85fad65"?>
+  <?define ProductUpgradeCode = "3ff010a5-2e94-4621-a260-3a7abcddb37c"?>
+  <?define Win64 = "no"?>
+  <?define ExpectedNativeMachine = "332"?>
+<?endif?>
+
+<Wix
+    xmlns="http://wixtoolset.org/schemas/v4/wxs"
+    xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+    <Package
+        Id="$(var.ProductAuthor).$(var.ProductName)"
+        Name="$(var.ProductName)"
+        Manufacturer="$(var.ProductAuthor)"
+        Version="$(var.ProductVersion)"
+        UpgradeCode="$(var.ProductUpgradeCode)">
+
+        <Property Id="OLD_VER_EXISTS" Secure="yes">
+            <?if $(var.Win64)?>
+            <DirectorySearch Id="CheckFileDir" Path="[System64Folder]" AssignToProperty="yes">
+                <FileSearch Id="CheckFile" Name="SecureUxTheme.dll" MinSize="1" />
+            </DirectorySearch>
+            <?else?>
+            <DirectorySearch Id="CheckFileDir" Path="[SystemFolder]" AssignToProperty="yes">
+                <FileSearch Id="CheckFile" Name="SecureUxTheme.dll" MinSize="1" />
+            </DirectorySearch>
+            <?endif?>
+        </Property>
+        <?if $(var.Win64) = "yes"?>
+        <Property Id="PACKAGE_IS_WIN64" Value="1" Secure="yes" />
+        <?endif?>
+
+        <Launch Condition="NOT OLD_VER_EXISTS"
+            Message="An old version is already installed. Please uninstall it first." />
+
+        <util:QueryNativeMachine />
+
+        <Launch
+            Condition="(NOT WIX_NATIVE_MACHINE OR WIX_NATIVE_MACHINE = $(var.ExpectedNativeMachine)) AND (VersionNT64 IMP PACKAGE_IS_WIN64)"
+            Message="This architecture is not supported by this install package!" />
+
+        <MediaTemplate EmbedCab="yes" />
+
+        <Property Id="ARPNOREPAIR" Value="1" />
+        <Property Id="ARPNOMODIFY" Value="1" />
+
+        <InstallExecuteSequence>
+            <ScheduleReboot After="InstallFinalize" />
+        </InstallExecuteSequence>
+
+        <Feature Id="Main">
+            <ComponentRef Id="HookComponent32" />
+            <ComponentRef Id="ProxyComponent32" />
+            <?if $(var.Win64) = "yes"?>
+            <ComponentRef Id="HookComponent64" />
+            <ComponentRef Id="ProxyComponent64" />
+            <?endif?>
+        </Feature>
+        <?if $(var.Win64) = "yes"?>
+        <StandardDirectory Id="System64Folder">
+            <Component Id="HookComponent64" Guid="95151161-eb96-416b-968f-e71b6f765ea2"
+                Bitness="always64">
+                <File Id="Hook64" Source="$(var.BuildDirectory)\SecureUxTheme4.dll" />
+                <RegistryKey Root="HKLM"
+                    Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\winlogon.exe">
+                    <RegistryValue Type="string" Name="VerifierDlls" Value="SecureUxTheme4.dll" />
+                    <RegistryValue Type="integer" Name="GlobalFlag" Value="256" />
+                </RegistryKey>
+            </Component>
+            <Component Id="ProxyComponent64" Guid="d805a0bb-cf81-4458-87c2-4b037de10c18"
+                Bitness="always64" Permanent="yes">
+                <File Id="Proxy64" Source="$(var.BuildDirectory)\ThemeUiProxy.dll" />
+            </Component>
+        </StandardDirectory>
+        <?endif?>
+
+        <StandardDirectory Id="SystemFolder">
+            <Component Id="HookComponent32" Guid="aeb6d46e-0701-421c-a07a-9eed9bae3ec1"
+                Bitness="always32">
+                <File Id="Hook32" Source="$(var.BuildDirectory32)\SecureUxTheme4.dll" />
+                <RegistryKey Root="HKLM"
+                    Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\winlogon.exe">
+                    <RegistryValue Type="string" Name="VerifierDlls" Value="SecureUxTheme4.dll" />
+                    <RegistryValue Type="integer" Name="GlobalFlag" Value="256" />
+                </RegistryKey>
+            </Component>
+            <Component Id="ProxyComponent32" Guid="5bc8fa06-9a98-4272-a6fa-8726901a1d01"
+                Bitness="always32" Permanent="yes">
+                <File Id="Proxy32" Source="$(var.BuildDirectory32)\ThemeUiProxy.dll" />
+            </Component>
+        </StandardDirectory>
+
+    </Package>
+</Wix>

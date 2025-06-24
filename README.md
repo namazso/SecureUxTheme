@@ -137,4 +137,4 @@ Note that the order of the builds is important, building ThemeTool will fail if 
 
 ## License
 
-See the [LICENSE](LICENSE) file.
+See the [COPYING](COPYING) file.
