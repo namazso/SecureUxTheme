@@ -71,8 +71,20 @@ A: Unfortunately, this is [close to impossible](https://github.com/namazso/Secur
 
 ## Building
 
-Good luck!
+### Requirements
 
-## License
+* Visual Studio Build Tools 17.11.4 or later for x86, x64, and ARM64
+* Windows 11 WDK (26100 or later)
+* Windows 11 SDK (must match the WDK version)
+* CMake 3.31 or later
+* WiX Toolset 6.0.0 or later
 
-See the [COPYING](COPYING) file.
+### Steps
+
+1. Configure and build the project for x86 into `cmake-build-release-x86`
+2. Configure and build the project for x64 into `cmake-build-release-x64`
+3. Configure and build the project for ARM64 with `-DBUILD_AS_ARM64X=ARM64` into `cmake-build-release-arm64`
+4. Configure and build the project for ARM64EC with `-DBUILD_AS_ARM64X=ARM64EC` into `cmake-build-release-arm64ec`
+5. Build the x86 installer with `dotnet clean -c Release && dotnet build -c Release -a x86 -o bin\Release_x86`
+6. Build the x64 installer with `dotnet clean -c Release && dotnet build -c Release -a x64 -o bin\Release_x64`
+7. Build the ARM64 installer with `dotnet clean -c Release && dotnet build -c Release -a ARM64 -o bin\Release_ARM64`
