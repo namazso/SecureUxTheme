@@ -25,6 +25,8 @@
 
 #include <phnt.h>
 
+// Just forward the exports to the original ThemeUI DLL, we only care about loading SecureUxTheme in DllMain.
+
 #pragma comment(linker, "/EXPORT:DllCanUnloadNow=themeui.DllCanUnloadNow,PRIVATE")
 #pragma comment(linker, "/EXPORT:DllGetClassObject=themeui.DllGetClassObject,PRIVATE")
 
@@ -42,5 +44,14 @@ BOOL WINAPI DllMain(PVOID, DWORD reason, PVOID) {
   return TRUE;
 }
 
-STDAPI  DllCanUnloadNow(void) { return S_OK; }
-STDAPI  DllGetClassObject(_In_ REFCLSID, _In_ REFIID, _Outptr_ LPVOID FAR*) { return S_OK; }
+// Due to some weird bug with ARM64EC linker, we have to define these functions even though we don't use them.
+// They are required by the linker to be defined, otherwise it will complain about unresolved external symbols,
+// however, upon checking the function bodies don't even exist in the final binary. Thanks, Microsoft, very cool.
+
+STDAPI DllCanUnloadNow(void) {
+  return S_OK;
+}
+
+STDAPI DllGetClassObject(_In_ REFCLSID, _In_ REFIID, _Outptr_ LPVOID FAR*) {
+  return S_OK;
+}

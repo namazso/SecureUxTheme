@@ -56,15 +56,15 @@ static void SignalLoaded() {
   // We leak the handle. It's not like we can be loaded twice, and if we die, the session is dead anyway
 }
 
-void* Malloc(size_t Size) {
+static void* Malloc(size_t Size) {
   return RtlAllocateHeap(RtlProcessHeap(), 0, Size);
 }
 
-void Free(void* Ptr) {
+static void Free(void* Ptr) {
   RtlFreeHeap(RtlProcessHeap(), 0, Ptr);
 }
 
-NTSTATUS AllowWriteForSystem(HANDLE Key) {
+static NTSTATUS AllowWriteForSystem(HANDLE Key) {
   NTSTATUS Status = STATUS_SUCCESS;
   ULONG SecurityDescriptorSize = 0;
   PSECURITY_DESCRIPTOR SecurityDescriptor = nullptr;
@@ -299,17 +299,23 @@ static NTSTATUS RegSetKeyValueExpandString(PCWSTR KeyName, PCWSTR ValueName, PCW
 static void SetThemeUiProxyKeys() {
   // We can just leave these as ThemeUiProxy.dll is never uninstalled
 
+  // IThemeManager2
   (void)RegSetKeyValueExpandString(
     L"\\Registry\\Machine\\SOFTWARE\\Classes\\CLSID\\{9324DA94-50EC-4A14-A770-E90CA03E7C8F}\\InProcServer32",
     L"",
     L"%SystemRoot%\\system32\\ThemeUiProxy.dll"
     );
+
+  // IThemeManagerShared
   (void)RegSetKeyValueExpandString(
     L"\\Registry\\Machine\\SOFTWARE\\Classes\\CLSID\\{c04b329e-5823-4415-9c93-ba44688947b0}\\InProcServer32",
     L"",
     L"%SystemRoot%\\system32\\ThemeUiProxy.dll"
     );
   if constexpr (sizeof(void*) == 8) {
+    // On 64-bit systems, we also need to set the Wow6432Node keys for 32-bit processes, in case someone wants to
+    // set a theme from a 32-bit process.
+
     (void)RegSetKeyValueExpandString(
       L"\\Registry\\Machine\\SOFTWARE\\Classes\\Wow6432Node\\CLSID\\{9324DA94-50EC-4A14-A770-E90CA03E7C8F}\\InProcServer32",
       L"",
@@ -341,6 +347,7 @@ static NTSTATUS DeleteDefaultColors(bool HighContrast) {
   if (!NT_SUCCESS(Status))
     return Status;
 
+  // List from LogonController.dll
   static constexpr const wchar_t* Colors[] = {
     L"ActiveTitle",
     L"ButtonFace",
@@ -354,7 +361,7 @@ static NTSTATUS DeleteDefaultColors(bool HighContrast) {
     L"MenuHilight",
     L"TitleText",
     L"Window",
-    L"WindowText"
+    L"WindowText",
   };
 
   for (const auto Color : Colors) {
@@ -369,17 +376,28 @@ static NTSTATUS DeleteDefaultColors(bool HighContrast) {
 }
 
 void WinlogonChores() {
+
+  // Various chores that we can't do in the installer, and as such are done here, when the DLL is loaded by winlogon.
+
   static bool s_AlreadyDone = false;
   if (s_AlreadyDone)
     return;
   s_AlreadyDone = true;
 
+  // Create an event named "SecureUxTheme_Loaded" in the current session.
   SignalLoaded();
+
+  // Hijack IThemeManager2 and IThemeManagerShared CLSIDs with our own proxy dll.
   SetThemeUiProxyKeys();
+
+  // Delete the default colors from the registry. LogonUI always resets colors to these, but they are only updated
+  // when the theme you're switching to is a high contrast theme. It's better to just make it not set anything.
   auto Status = DeleteDefaultColors(false);
   if (!NT_SUCCESS(Status)) {
     DebugPrint("Failed to delete standard default colors: %lX\n", Status);
   }
+
+  // Also delete the high contrast versions, in case one of the users has a high contrast theme set.
   Status = DeleteDefaultColors(true);
   if (!NT_SUCCESS(Status)) {
     DebugPrint("Failed to delete high contrast default colors: %lX\n", Status);

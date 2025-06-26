@@ -104,6 +104,10 @@
                     <RegistryValue Type="integer" Name="GlobalFlag" Value="256" />
                 </RegistryKey>
             </Component>
+            <!-- We set this to permanent, because if we deleted it without removing the proxying,
+            everything trying to set a theme would be broken. We can't do or undo the proxying here,
+            because WRP protects that registry key. ThemeUiProxy is written so that it won't fail if
+            SecureUxTheme is removed. -->
             <Component Id="ProxyComponent64" Guid="d805a0bb-cf81-4458-87c2-4b037de10c18"
                 Bitness="always64" Permanent="yes">
                 <File Id="Proxy64" Source="$(var.BuildDirectory)\ThemeUiProxy.dll" />

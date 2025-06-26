@@ -15,7 +15,7 @@
 //  License along with this library; if not, write to the Free Software
 //  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-BOOL WINAPI CryptImportKey_Hook(
+static BOOL WINAPI CryptImportKey_Hook(
   _In_ HCRYPTPROV hProv,
   _In_reads_bytes_(dwDataLen) CONST BYTE* pbData,
   _In_ DWORD dwDataLen,
@@ -26,7 +26,7 @@ BOOL WINAPI CryptImportKey_Hook(
 
 static decltype(&CryptImportKey_Hook) s_OriginalCryptImportKey;
 
-PVOID WINAPI ResolveDelayLoadedAPI_Hook(
+static PVOID WINAPI ResolveDelayLoadedAPI_Hook(
   _In_ PVOID ParentModuleBase,
   _In_ PCIMAGE_DELAYLOAD_DESCRIPTOR DelayloadDescriptor,
   _In_opt_ PDELAYLOAD_FAILURE_DLL_CALLBACK FailureDllHook,
@@ -53,16 +53,16 @@ struct HookTargetImage {
 
 static HookEntry s_Hooks[] =
   {
-    DEFINE_HOOK(CryptImportKey),
-    DEFINE_HOOK(ResolveDelayLoadedAPI),
+    DEFINE_HOOK(CryptImportKey),        // Main theme signature verification hook
+    DEFINE_HOOK(ResolveDelayLoadedAPI), // Hook for delay-loaded APIs to apply IAT hooks
 };
 
 static HookTargetImage s_TargetImages[] =
   {
-    {RTL_CONSTANT_STRING(L"themeui.dll")},
-    {RTL_CONSTANT_STRING(L"themeservice.dll")},
-    {RTL_CONSTANT_STRING(L"uxinit.dll")},
-    {RTL_CONSTANT_STRING(L"uxtheme.dll")},
+    {RTL_CONSTANT_STRING(L"themeui.dll")},      // CThemeManager2, CThemeManagerShared
+    {RTL_CONSTANT_STRING(L"themeservice.dll")}, // Theme service on Windows 8.1
+    {RTL_CONSTANT_STRING(L"uxinit.dll")},       // In winlogon, actually loading the styles
+    {RTL_CONSTANT_STRING(L"uxtheme.dll")},      // The main theme engine, which is loaded by the above
 };
 
 static void HookThunks(PVOID DllBase, PIMAGE_THUNK_DATA Thunk, PIMAGE_THUNK_DATA OriginalThunk) {
@@ -108,7 +108,7 @@ static void HookThunks(PVOID DllBase, PIMAGE_THUNK_DATA Thunk, PIMAGE_THUNK_DATA
   }
 }
 
-void ApplyImportHooksOnDll(PVOID DllBase) {
+static void ApplyImportHooksOnDll(PVOID DllBase) {
   const auto Base = (PUCHAR)DllBase;
 
   const auto DosHeader = (PIMAGE_DOS_HEADER)DllBase;
@@ -156,7 +156,7 @@ void DllLoadNotification(PVOID DllBase, PUNICODE_STRING DllBaseName) {
   }
 }
 
-PVOID WINAPI ResolveDelayLoadedAPI_Hook(
+static PVOID WINAPI ResolveDelayLoadedAPI_Hook(
   _In_ PVOID ParentModuleBase,
   _In_ PCIMAGE_DELAYLOAD_DESCRIPTOR DelayloadDescriptor,
   _In_opt_ PDELAYLOAD_FAILURE_DLL_CALLBACK FailureDllHook,
@@ -164,6 +164,9 @@ PVOID WINAPI ResolveDelayLoadedAPI_Hook(
   _Out_ PIMAGE_THUNK_DATA ThunkAddress,
   _Reserved_ ULONG Flags
 ) {
+  // This function is called by the delay loader to resolve a delay-loaded API. It is used to hook the delay-loaded
+  // APIs in the target module just like we already do with normal imports.
+
   const auto RetVal = s_OriginalResolveDelayLoadedAPI(
     ParentModuleBase,
     DelayloadDescriptor,
@@ -190,6 +193,8 @@ static bool s_FixedInFirstHook = false;
 static PVOID s_OriginalRetAddr1 = nullptr;
 
 static __declspec(naked) void RetHook1() {
+  // if ((s_FixedInFirstHook = FAILED(ret))
+  //   ret = S_OK;
   __asm {
     test eax, eax
     sets byte ptr [s_FixedInFirstHook]
@@ -203,6 +208,8 @@ static __declspec(naked) void RetHook1() {
 static PVOID s_OriginalRetAddr2 = nullptr;
 
 static __declspec(naked) void RetHook2() {
+  // if (!s_FixedInFirstHook && FAILED(ret))
+  //   ret = S_OK;
   __asm {
     test [s_FixedInFirstHook], 1
     jnz AlreadyFixed
@@ -214,6 +221,16 @@ static __declspec(naked) void RetHook2() {
   }
 }
 
+/// Hook return address FramesToSkip frames above the given context, or the current one if none given.
+///
+/// This function walks up the given number of frames, then replaces the return address of the last frame.
+///
+/// @param FramesToSkip The number of frames to skip, starting from the current frame.
+/// @param RetHook The hook to set as the return address.
+/// @param RetOriginal Pointer to the original return address. This will be set to the original return
+///                    address if it was not already set. If it was, the current return address will
+///                    be checked against it.
+/// @param Context Context to start from, in case you want to ReturnHook from somewhere deeper.
 static DECLSPEC_NOINLINE void ReturnHookX86(
   _In_ ULONG FramesToSkip,
   _In_ void (*RetHook)(),
@@ -248,6 +265,8 @@ static bool WasCreateKeyInlined(void* Function) {
 
 #if defined(_M_X64)
 
+  // On x64 we can just look for the E_FAIL signature in the function body, since it is an immediate
+
   ULONG64 ImageBase;
   const auto Entry = RtlLookupFunctionEntry((ULONG64)Function, &ImageBase, nullptr);
 
@@ -263,6 +282,9 @@ static bool WasCreateKeyInlined(void* Function) {
   return false;
 
 #elif defined(_M_ARM64)
+
+  // On ARM64 immediates are stashed after the function, aligned. Also, RUNTIME_FUNCTION has no EndAddress. So here we
+  // just get the BeginAddress of the next function (remember, RUNTIME_FUNCTIONs are sorted) and scan until that.
 
   ULONG64 ImageBase;
   const auto Entry = RtlLookupFunctionEntry((ULONG64)Function, &ImageBase, nullptr);
@@ -282,15 +304,15 @@ static bool WasCreateKeyInlined(void* Function) {
 #endif
 }
 
-// Return, but across multiple frames.
-//
-// This function unwinds the given number of frames, then sets the return value provided, emulating as if this number
-// of functions returned, with the last one returning the value provided in RetVal. Can be used to hook a callee when
-// you don't have a convenient way to hook it directly and actually just want to stub it out with a return value.
-//
-// @param FramesToSkip The number of frames to skip, starting from the current frame.
-// @param RetVal The value to return from the last frame.
-// @param Context Context to start from, in case you want to SuperReturn from somewhere deeper.
+/// Return, but across multiple frames.
+///
+/// This function unwinds the given number of frames, then sets the return value provided, emulating as if this number
+/// of functions returned, with the last one returning the value provided in RetVal. Can be used to hook a callee when
+/// you don't have a convenient way to hook it directly and actually just want to stub it out with a return value.
+///
+/// @param FramesToSkip The number of frames to skip, starting from the current frame.
+/// @param RetVal The value to return from the last frame.
+/// @param Context Context to start from, in case you want to SuperReturn from somewhere deeper.
 static DECLSPEC_NOINLINE void SuperReturn(
   _In_ ULONG FramesToSkip,
   _In_opt_ ULONG_PTR RetVal,
@@ -356,7 +378,7 @@ static DECLSPEC_NOINLINE void SuperReturn(
 
 #endif
 
-BOOL WINAPI CryptImportKey_Hook(
+static BOOL WINAPI CryptImportKey_Hook(
   _In_ HCRYPTPROV hProv,
   _In_reads_bytes_(dwDataLen) CONST BYTE* pbData,
   _In_ DWORD dwDataLen,
@@ -364,6 +386,89 @@ BOOL WINAPI CryptImportKey_Hook(
   _In_ DWORD dwFlags,
   _Out_ HCRYPTKEY* phKey
 ) {
+  // This is the main theme signature verification disabling hook. To fully understand how it operates, we need to
+  // first understand how the verification works in the first place. We're mainly concerned with two functions, which
+  // I provide here in reverse-engineered form:
+  //
+  // HRESULT CThemeSignature::CreateKey()
+  // {
+  //   HRESULT hr;
+  //   DWORD LastError;
+  //
+  //   hr = 0;
+  //   if (!CryptImportKey(this->_hCryptProvider, this->_pvSignature, this->_dwSignatureSize, 0, 0, &this->_hCryptKey)) {
+  //     LastError = GetLastError();
+  //     return this->_FixCryptoError(LastError);
+  //   }
+  //   return hr;
+  // }
+  //
+  // HRESULT CThemeSignature::Verify(HANDLE File) {
+  //   HRESULT hr;
+  //   DWORD LastError;
+  //   BYTE pbSignature[128];
+  //
+  //   if (!this->_hCryptProvider || !this->_hCryptHash)
+  //     return E_FAIL;
+  //   hr = this->CreateKey();
+  //   if (SUCCEEDED(hr)) {
+  //     hr = this->CalculateHash(File);
+  //     if (SUCCEEDED(hr)) {
+  //       memset(pbSignature, 0, sizeof(pbSignature));
+  //       hr = this->ReadSignature(File, pbSignature);
+  //       if (SUCCEEDED(hr)) {
+  //         if (CryptVerifySignatureW(
+  //               this->_hCryptHash,
+  //               pbSignature,
+  //               sizeof(pbSignature),
+  //               this->_hCryptKey,
+  //               L"Microsoft Visual Style Signature",
+  //               0
+  //             )) {
+  //           return 0;
+  //         } else {
+  //           LastError = GetLastError();
+  //           return this->_FixCryptoError(LastError);
+  //         }
+  //       }
+  //     }
+  //   }
+  //   return hr;
+  // }
+  //
+  // Originally, SecureUxTheme hooked CryptVerifySignatureW so that invalid signatures would also pass. However,
+  // this meant that there needed to be a signature present in the first place, which is usually not the case.
+  //
+  // Since version 4, SecureUxTheme hooks CryptImportKey instead, which is called by CreateKey, which is in turn
+  // called by Verify. As an ordinary hook this is not ideal, since there's no "proper" context we control that
+  // could possibly make ReadSignature not fail on the missing signature, and the only way to avoid that function
+  // is to return a failure from CreateKey, which would then cause Verify to fail as well. Instead, we choose to
+  // mess with the stack contents to alter control flow in a way we can fix up the return value from Verify.
+  //
+  // On x86, we do this by replacing the return address of Verify with a hook that checks the return value and
+  // replaces it with success if it originally was a failure. Unfortunately, we aren't sure if CreateKey was
+  // inlined into Verify, so we hook both two and three frames above the current function. If the first hook is
+  // successful, we skip tampering with the return value in the second hook, since we don't know what it hooked.
+  // This seems to work well enough on the tested Windows versions, and even if it doesn't, the worst that can
+  // happen is that the signature verification fails on unsigned themes. Still better than a crash.
+  //
+  // On x64 and ARM64, we have a harder task: we can't just replace the return address because CET/PAC will stop
+  // us from doing that. Instead, we unwind the stack to the point where Verify was called, and set the return
+  // value to S_OK, which is what it normally returns on success. The only complication is that we don't know if
+  // CreateKey was inlined into Verify, so we need to guess if our caller "looks like" Verify. We do this by
+  // checking if the function contains the E_FAIL constant, which is only returned by Verify, and not CreateKey.
+  //
+  // This approach was confirmed working on the following Windows versions:
+  //
+  // - Windows 8.1 x64 (9600)
+  // - Windows 10 1809 x64 (17763)
+  // - Windows 10 21H2 x86 (19044)
+  // - Windows 10 21H2 x64 (19044)
+  // - Windows 10 22H2 x64 (19045)
+  // - Windows Server 2022 x64 (20348)
+  // - Windows 11 24H2 x64 (26100)
+  // - Windows 11 24H2 ARM64 (26100)
+
 #if defined(_M_IX86)
   ReturnHookX86(2, &RetHook1, &s_OriginalRetAddr1, nullptr);
   ReturnHookX86(3, &RetHook2, &s_OriginalRetAddr2, nullptr);
