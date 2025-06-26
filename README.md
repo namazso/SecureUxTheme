@@ -45,7 +45,7 @@ winget install namazso.SecureUXTheme
 
 This is only a tool for enabling custom themes; no actual visual changes will be made.  Regardless, here is a cool theme for illustration:
 
-![Screenshot](https://github.com/user-attachments/assets/2c0301f2-8392-426d-9b19-bb29500a0eea)
+![Screenshot](https://github.com/user-attachments/assets/4d6be235-5a75-4724-a3e2-16df4bec2f4d)
 
 Theme used: [10 Pro by niivu](https://github.com/niivu/Windows-10-themes/tree/main/10%20Pro)
 
