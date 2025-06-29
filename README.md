@@ -41,6 +41,12 @@ WinGet:
 winget install namazso.SecureUXTheme
 ```
 
+
+## How to use
+
+[![Video](https://github.com/user-attachments/assets/b3d4d917-ee12-43e2-b535-21a64b09b018)](https://www.youtube.com/watch?v=Bpyrs5d3VNw)
+
+
 ## Screenshot
 
 This is only a tool for enabling custom themes; no actual visual changes will be made.  Regardless, here is a cool theme for illustration:
